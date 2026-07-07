@@ -6,11 +6,13 @@ Ordem de execução de cima para baixo. Tags: `[FABLE]` = sensível, executar pe
       **DoD:** `npm run build` e `npm run test` passam; deploy de preview no Cloudflare Pages funciona.
       _Feito. `build`/`test`/`lint`/`check` passando. Pendência externa: conectar o repositório ao Cloudflare Pages (ação do dono do projeto no dashboard) para validar o deploy de preview._
 
-- [ ] **T2 `[FABLE]` Setup Supabase + migração de schema** — `supabase init`, escrever `0001_initial_schema.sql` com todas as tabelas e enums do `PLAN.md` §3.
+- [x] **T2 `[FABLE]` Setup Supabase + migração de schema** — `supabase init`, escrever `0001_initial_schema.sql` com todas as tabelas e enums do `PLAN.md` §3.
       **DoD:** `supabase db reset` aplica limpo; tipos gerados em `$lib/types/database.ts`.
+      _Feito. Migração `20260707000001_initial_schema.sql`; RLS ligada desde a criação; tipos gerados._
 
-- [ ] **T3 `[FABLE]` Políticas RLS + funções helper** — `0002_rls_policies.sql` com `is_band_member`/`is_band_admin` e políticas por tabela conforme plan; RPC `create_band(name)`.
+- [x] **T3 `[FABLE]` Políticas RLS + funções helper** — `0002_rls_policies.sql` com `is_band_member`/`is_band_admin` e políticas por tabela conforme plan; RPC `create_band(name)`.
       **DoD:** teste automatizado com dois usuários prova: membro lê só a própria banda; member não escreve em catálogo; member consegue UPDATE em `live_sessions`; criador de banda vira admin.
+      _Feito. Migração `20260707000002_rls_policies.sql` + RPC extra `invite_band_member`; pgTAP 14/14 em `supabase/tests/001_rls_isolation.sql`._
 
 - [ ] **T4 `[FABLE]` Auth no SvelteKit** — cliente em `$lib/supabase.ts`, `hooks.server.ts` com sessão, guard de rotas `(app)`.
       **DoD:** rota protegida redireciona não autenticado para `/login`; sessão sobrevive a reload.

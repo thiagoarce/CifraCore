@@ -43,7 +43,14 @@ Padrão por tabela (DDL final escrita na implementação, revisada por Fable):
 **Armadilhas conhecidas:**
 
 - `band_members` referenciando a si mesma nas políticas → usar as funções `security definer` acima para evitar recursão infinita de RLS.
-- Criação de banda é um fluxo de duas escritas (band + membership admin) → resolver com trigger `after insert on bands` ou RPC `create_band(name)` transacional. Decisão na implementação (preferência: RPC, mais explícito).
+- Criação de banda é um fluxo de duas escritas (band + membership admin) → **decidido: RPC `create_band(band_name)` SECURITY DEFINER** (sem política de INSERT em `bands`/`band_members` — escrita só pelas RPCs).
+- Convite por e-mail exige ler `auth.users` (inacessível ao client) → **RPC `invite_band_member(target_band, member_email)`** SECURITY DEFINER, restrita a admins.
+
+**Decisões tomadas na implementação (T2/T3):**
+
+- `song_tabs` separa `content` (jsonb, AST) de `content_url` (text, PDF) com CHECK de exclusividade; UNIQUE (`song_id`, `instrument`). Refletido no `PLAN.md` §3.
+- Grants de tabela: `authenticated` tem CRUD (o RLS decide as linhas); **`anon` não tem grant nenhum** — convidado nunca toca tabela direto (spec 005, Edge Function).
+- Testes de isolamento em `supabase/tests/001_rls_isolation.sql` (pgTAP, 14 asserts), executados com `npx supabase test db`.
 
 ## Estrutura de Arquivos
 

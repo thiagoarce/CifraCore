@@ -33,7 +33,7 @@ Todas as tabelas usam `id UUID PRIMARY KEY DEFAULT gen_random_uuid()` e `created
 - **`bands`**: `id`, `name` (text, not null), `logo_url` (text, nullable).
 - **`band_members`**: `id`, `user_id` (FK `auth.users`, not null), `band_id` (FK `bands`, not null), `role` (enum: `'admin'`, `'member'`), `instrument` (enum, preferência padrão do músico). UNIQUE (`user_id`, `band_id`).
 - **`songs`**: `id`, `band_id` (FK `bands`), `title` (text), `artist` (text), `original_key` (text), `preferred_key` (text, nullable — tom em que a banda toca), `capo` (int, default 0), `bpm` (int, nullable), `source_url` (text, nullable — dedupe de importações).
-- **`song_tabs`**: `id`, `song_id` (FK `songs`, ON DELETE CASCADE), `instrument` (enum: `'vocal'`, `'guitar'`, `'bass'`, `'drums'`, `'keys'`, `'cifra'`), `content_type` (enum: `'ast'`, `'pdf_url'`), `content` (jsonb para AST, text para URL).
+- **`song_tabs`**: `id`, `song_id` (FK `songs`, ON DELETE CASCADE), `instrument` (enum: `'vocal'`, `'guitar'`, `'bass'`, `'drums'`, `'keys'`, `'cifra'`), `content_type` (enum: `'ast'`, `'pdf_url'`), `content` (jsonb — AST) e `content_url` (text — PDF); CHECK garante exatamente um dos dois conforme o `content_type`. UNIQUE (`song_id`, `instrument`) — uma tab por instrumento por música.
 
 ### 3.2. Tabelas de Palco (Realtime)
 
