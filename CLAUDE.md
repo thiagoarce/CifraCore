@@ -55,4 +55,4 @@ Notas do scaffold: não existe `svelte.config.js` — a configuração do Svelte
 
 ## Estado Atual
 
-Fase 1 (fundação) em andamento — scaffold pronto (001-T1 ✅). Próximo passo: `specs/001-fundacao/tasks.md` T2 (schema Supabase).
+Fase 1 (fundação) concluída — T1–T7 feitos (T8/T9 são follow-ups anotados no tasks.md da 001). Próximo passo: `specs/002-importacao/tasks.md` T1 (parser texto→AST).
