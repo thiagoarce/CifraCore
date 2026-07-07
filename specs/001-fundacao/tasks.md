@@ -14,8 +14,9 @@ Ordem de execução de cima para baixo. Tags: `[FABLE]` = sensível, executar pe
       **DoD:** teste automatizado com dois usuários prova: membro lê só a própria banda; member não escreve em catálogo; member consegue UPDATE em `live_sessions`; criador de banda vira admin.
       _Feito. Migração `20260707000002_rls_policies.sql` + RPC extra `invite_band_member`; pgTAP 14/14 em `supabase/tests/001_rls_isolation.sql`._
 
-- [ ] **T4 `[FABLE]` Auth no SvelteKit** — cliente em `$lib/supabase.ts`, `hooks.server.ts` com sessão, guard de rotas `(app)`.
+- [x] **T4 `[FABLE]` Auth no SvelteKit** — cliente em `$lib/supabase.ts`, `hooks.server.ts` com sessão, guard de rotas `(app)`.
       **DoD:** rota protegida redireciona não autenticado para `/login`; sessão sobrevive a reload.
+      _Feito. Padrão @supabase/ssr: client por request em `hooks.server.ts` + `safeGetSession` validando JWT; client do browser criado no `+layout.ts` raiz (não há `$lib/supabase.ts` — o client é por request/por load, decisão registrada no plan). Verificado com curl: 303 sem sessão, 200 com cookie de sessão._
 
 - [ ] **T5 `[SONNET]` Telas de autenticação** — páginas login, cadastro, recuperação de senha em `(auth)/`, usando o design system básico (cores do spec 003 §Paletas; componentes simples, sem dashboard ainda).
       **DoD:** fluxo cadastro→login→logout funciona manualmente; erros de auth exibidos de forma amigável.

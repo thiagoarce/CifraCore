@@ -56,19 +56,23 @@ Padrão por tabela (DDL final escrita na implementação, revisada por Fable):
 
 ```
 src/
-├── hooks.server.ts
+├── hooks.server.ts               # client por request + safeGetSession + guard
+├── app.d.ts                      # App.Locals tipado
 ├── lib/
-│   ├── supabase.ts
-│   ├── types/database.ts        # gerado
+│   ├── types/database.ts         # gerado (supabase gen types)
 │   └── stores/currentBand.ts
 └── routes/
+    ├── +layout.server.ts / +layout.ts / +layout.svelte  # sessão SSR↔browser
     ├── (auth)/login, register, reset
-    └── (app)/+layout.server.ts  # guard
+    └── (app)/+layout.server.ts   # guard de segunda linha
 supabase/
-├── migrations/0001_initial_schema.sql
-├── migrations/0002_rls_policies.sql
+├── migrations/20260707000001_initial_schema.sql
+├── migrations/20260707000002_rls_policies.sql
+├── tests/001_rls_isolation.sql   # pgTAP (npx supabase test db)
 └── config.toml
 ```
+
+Nota (decisão T4): não há `$lib/supabase.ts` singleton — o padrão `@supabase/ssr` cria um client **por request** no servidor (`hooks.server.ts`) e um client de browser no `+layout.ts` raiz, exposto às páginas via `data.supabase`. Um singleton compartilharia cookies entre requests no servidor (bug de segurança clássico).
 
 ## Riscos Específicos
 
