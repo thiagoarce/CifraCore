@@ -34,6 +34,7 @@ A experiência de tocar ao vivo: tela limpa (visão de túnel), tela que nunca a
 ## Cenários de Comportamento (Gherkin)
 
 **Cenário: Entrar no Modo Extremo**
+
 - **Dado** que o músico está na tela da música em sessão ativa
 - **Quando** ele toca "Modo Palco"
 - **Então** header, sidebar e rodapé desaparecem (`fullscreen-mode`)
@@ -41,6 +42,7 @@ A experiência de tocar ao vivo: tela limpa (visão de túnel), tela que nunca a
 - **E** o botão `[X]` translúcido restaura a visão normal.
 
 **Cenário: Toque interrompe o auto-scroll**
+
 - **Dado** que o auto-scroll está rolando a cifra
 - **Quando** o músico toca na tela e arrasta para cima
 - **Então** o auto-scroll para instantaneamente, sem "cabo de guerra" com o dedo
@@ -49,17 +51,20 @@ A experiência de tocar ao vivo: tela limpa (visão de túnel), tela que nunca a
 - **Então** a rolagem retoma suavemente a partir da posição atual.
 
 **Cenário: PLAY do líder dispara clocks locais**
+
 - **Dado** dois devices na sessão em modo "Seguir Líder"
 - **Quando** o líder aperta Play
 - **Então** cada device inicia seu próprio auto-scroll com clock local
 - **E** nenhum dado de posição de scroll trafega pela rede durante a rolagem.
 
 **Cenário: Wake Lock re-adquirido**
+
 - **Dado** o Modo Palco ativo com Wake Lock
 - **Quando** o usuário alterna de app e volta (visibilitychange)
 - **Então** o Wake Lock é re-solicitado automaticamente.
 
 **Cenário: Pedal passa a página**
+
 - **Dado** um pedal Bluetooth pareado emitindo `PageDown`
 - **Quando** o músico pisa no pedal
 - **Então** a cifra rola um passo de 60% da altura visível com animação curta.

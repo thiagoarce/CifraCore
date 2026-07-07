@@ -39,16 +39,20 @@ Cada tarefa é marcada `[FABLE]` ou `[SONNET]` (tabela completa no `TASKS.md`):
 
 ## Comandos
 
-O projeto ainda não foi inicializado (a tarefa 001-T1 cria o scaffold). Ao criá-lo, registrar aqui:
-
 ```bash
 npm run dev        # dev server
-npm run build      # build (adapter Cloudflare)
-npm run test       # Vitest
-supabase start     # stack local
-supabase db reset  # aplica migrações do zero
+npm run build      # wrangler types --check + vite build (adapter Cloudflare)
+npm run gen        # regenera worker-configuration.d.ts (rodar após mudar wrangler.jsonc)
+npm run test       # Vitest (run único)
+npm run lint       # Prettier --check + ESLint
+npm run format     # Prettier --write
+npm run check      # svelte-check
+npx supabase start     # stack local (Docker)
+npx supabase db reset  # aplica migrações do zero
 ```
+
+Notas do scaffold: não existe `svelte.config.js` — a configuração do SvelteKit (adapter, runes) vive no `vite.config.ts` (plugin `sveltekit()`); Tailwind v4 é configurado via CSS (`@theme` em `src/routes/layout.css`), sem `tailwind.config.js`.
 
 ## Estado Atual
 
-Repositório em fase de especificação — nenhum código de app ainda. Próximo passo: `specs/001-fundacao/tasks.md` T1.
+Fase 1 (fundação) em andamento — scaffold pronto (001-T1 ✅). Próximo passo: `specs/001-fundacao/tasks.md` T2 (schema Supabase).

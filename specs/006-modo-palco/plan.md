@@ -6,15 +6,15 @@
 
 ```
 idle ──PLAY──▶ playing ──touch──▶ pausedByUser ──resume──▶ playing
-                 │  ▲                                        
-              PAUSE │RESYNC(realinha clock, segue playing)   
-                 ▼  │                                        
+                 │  ▲
+              PAUSE │RESYNC(realinha clock, segue playing)
+                 ▼  │
                pausedByLeader
 ```
 
-  - Estado interno: `startedAt` (clock local), `elapsedAtPause`, `durationMs`, `scrollRange` (medido do DOM no início e em `resize`).
-  - Saída: store `$scrollProgress` (tweened 0→1); o componente aplica `scrollTop = progress * scrollRange`.
-  - Clock: tick de baixa frequência via `worker-timers` (`setInterval` do pacote, ~250ms) que alimenta o target do tweened — o tweened faz a suavização entre ticks; a UI nunca depende do timer para cada frame.
+- Estado interno: `startedAt` (clock local), `elapsedAtPause`, `durationMs`, `scrollRange` (medido do DOM no início e em `resize`).
+- Saída: store `$scrollProgress` (tweened 0→1); o componente aplica `scrollTop = progress * scrollRange`.
+- Clock: tick de baixa frequência via `worker-timers` (`setInterval` do pacote, ~250ms) que alimenta o target do tweened — o tweened faz a suavização entre ticks; a UI nunca depende do timer para cada frame.
 - **Pausa por toque (risco R3):** listeners `touchstart`/`wheel`/`mousedown` (passive) no container → transição `pausedByUser` síncrona + `tweened.set(currentProgress, { duration: 0 })` para matar a interpolação em andamento. "Retomar": lê `scrollTop` real, converte em progress, recalcula duração restante proporcional e retoma.
 - **RESYNC suave:** ao receber `RESYNC { elapsed_ms }`, animar até `elapsed_ms/durationMs` em ~500ms e continuar — proibido salto instantâneo.
 - **Wake Lock** em `$lib/utils/wakeLock.ts`: `acquire()`, `release()`, re-aquisição em `visibilitychange`, detecção de suporte com callback de aviso. Ativado pelo layout do Modo Palco.

@@ -19,6 +19,7 @@ Estabelecer a base técnica do CifraCore: projeto SvelteKit configurado para Clo
 ### Funcionalidade: Isolamento Multi-Tenant
 
 **Cenário: Membro não enxerga dados de outra banda**
+
 - **Dado** que "Thiago" é membro da banda "Tarja Preta"
 - **E** existe outra banda "Baião de Dois" da qual Thiago não é membro
 - **Quando** Thiago consulta a tabela `songs` (por qualquer via, inclusive query direta na API do Supabase)
@@ -26,6 +27,7 @@ Estabelecer a base técnica do CifraCore: projeto SvelteKit configurado para Clo
 - **E** um SELECT explícito por id de música da "Baião de Dois" retorna vazio.
 
 **Cenário: Member não escreve no catálogo**
+
 - **Dado** que "Membro X" tem `role = 'member'` na banda "Tarja Preta"
 - **Quando** ele tenta INSERT/UPDATE/DELETE em `songs`, `setlists` ou `bands`
 - **Então** o banco rejeita a operação por política RLS.
@@ -33,6 +35,7 @@ Estabelecer a base técnica do CifraCore: projeto SvelteKit configurado para Clo
 ### Funcionalidade: Criação de banda
 
 **Cenário: Criador vira admin**
+
 - **Dado** um usuário autenticado sem bandas
 - **Quando** ele cria a banda "Tarja Preta"
 - **Então** existe uma linha em `bands`
@@ -41,6 +44,7 @@ Estabelecer a base técnica do CifraCore: projeto SvelteKit configurado para Clo
 ### Funcionalidade: Alternância de banda
 
 **Cenário: Músico em duas bandas**
+
 - **Dado** que "Thiago" é membro de "Tarja Preta" e "Baião de Dois"
 - **Quando** ele seleciona "Baião de Dois" no seletor de banda
 - **Então** `$currentBand` muda e a escolha persiste em localStorage após reload.

@@ -21,6 +21,7 @@ O coração ao vivo do produto: setlists por banda e a sessão de palco sincroni
 ### Funcionalidade: Sincronia de Palco Democrática
 
 **Cenário: Líder altera a música em tempo real**
+
 - **Dado** que a banda "Tarja Preta" possui uma `live_session` ativa
 - **E** o músico "Thiago" está autenticado como `leader_id`
 - **E** o músico "Membro X" está conectado na mesma sessão em modo "Seguir Líder"
@@ -29,6 +30,7 @@ O coração ao vivo do produto: setlists por banda e a sessão de palco sincroni
 - **E** a tela de "Membro X" carrega a aba correspondente ao instrumento preferido dele em menos de 200ms após receber o evento.
 
 **Cenário: Tomada de liderança**
+
 - **Dado** que "Thiago" é o líder atual
 - **Quando** "Membro X" clica em "Assumir Liderança"
 - **Então** `leader_id` passa a ser o de Membro X
@@ -36,6 +38,7 @@ O coração ao vivo do produto: setlists por banda e a sessão de palco sincroni
 - **E** os controles de troca de música aparecem para Membro X e somem para Thiago.
 
 **Cenário: Sugestão aceita**
+
 - **Dado** uma sessão ativa com líder "Thiago"
 - **Quando** "Membro X" sugere "Tempo Perdido"
 - **Então** a sugestão aparece na fila do líder com o nome de quem sugeriu
@@ -43,6 +46,7 @@ O coração ao vivo do produto: setlists por banda e a sessão de palco sincroni
 - **Então** "Tempo Perdido" vira a música corrente para todos e a sugestão fica `accepted`.
 
 **Cenário: Membro em modo Individual**
+
 - **Dado** que "Membro Y" ativou o modo Individual para revisar outra música
 - **Quando** o líder troca a música corrente
 - **Então** a tela de Membro Y **não** muda
@@ -51,6 +55,7 @@ O coração ao vivo do produto: setlists por banda e a sessão de palco sincroni
 ### Funcionalidade: Convidado
 
 **Cenário: Substituto acompanha o show**
+
 - **Dado** que o líder gerou um link de convidado para a sessão ativa
 - **Quando** o substituto abre o link sem estar logado
 - **Então** ele vê a música corrente (read-only, com abas de instrumento) e acompanha as trocas do líder
@@ -60,6 +65,7 @@ O coração ao vivo do produto: setlists por banda e a sessão de palco sincroni
 ### Funcionalidade: Resiliência
 
 **Cenário: Reconexão após queda de rede**
+
 - **Dado** que "Membro X" perdeu a conexão durante 2 músicas
 - **Quando** a rede volta
 - **Então** o app detecta a reconexão do canal, busca o estado atual de `live_sessions` e alinha a tela — sem depender dos eventos perdidos.

@@ -16,18 +16,21 @@ Fechar o ciclo da "Multi-Visão por Instrumento": além de AST, uma tab pode ser
 ## Cenários de Comportamento (Gherkin)
 
 **Cenário: Upload e visualização de partitura**
+
 - **Dado** que o admin está na música "Tempo Perdido"
 - **Quando** ele envia `partitura-teclado.pdf` para o instrumento "keys"
 - **Então** a aba "Teclado" passa a existir na tela da música
 - **E** qualquer membro da banda abre a aba e vê o PDF renderizado com zoom e páginas.
 
 **Cenário: Isolamento de tenant no Storage**
+
 - **Dado** um usuário que não é membro da banda dona do arquivo
 - **Quando** ele tenta acessar o caminho do PDF (mesmo com a URL do path)
 - **Então** o Storage nega o acesso (políticas por `band_id` no caminho)
 - **E** URLs assinadas expiradas também são negadas.
 
 **Cenário: PDF corrompido não quebra a tela**
+
 - **Dado** uma tab apontando para um arquivo corrompido
 - **Quando** o membro abre a aba
 - **Então** aparece a mensagem de falha com "Abrir em nova aba"

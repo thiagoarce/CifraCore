@@ -29,21 +29,21 @@ O **CifraCore** é um Web App Responsivo (PWA) para bandas gerenciarem seus repe
 
 ### 4.1. Núcleo (MVP)
 
-| # | Funcionalidade | Feature Spec |
-|---|---|---|
-| F1 | Autenticação, bandas, membros e papéis (admin/member) | `specs/001-fundacao` |
-| F2 | Catálogo de músicas por banda, com abas por instrumento | `specs/001-fundacao`, `specs/003-catalogo-ui` |
-| F3 | Importação "Modo Avançado" (colar texto → parser → AST) | `specs/002-importacao` |
-| F4 | Importação por URL (scraper CifraClub) com Tela de Rascunho (HITL) | `specs/002-importacao` |
-| F5 | Bootstrapping em lote (`batch-import.js` lendo `repertorio.txt`) | `specs/002-importacao` |
-| F6 | Destaque visual de acordes + transposição de tom (±1 semitom) + capotraste | `specs/004-inteligencia-musical` |
-| F7 | Tom preferido salvo por banda (`preferred_key`) | `specs/004-inteligencia-musical` |
-| F8 | Setlists (CRUD + ordenação) | `specs/005-setlists-sync` |
-| F9 | Sessão ao vivo: sync realtime por eventos, liderança democrática, sugestões, presença | `specs/005-setlists-sync` |
-| F10 | Modo Convidado via link assinado (read-only, escopo = show atual) | `specs/005-setlists-sync` |
-| F11 | Modo Palco (normal e Extremo), Wake Lock, auto-scroll, pausa por toque, pedal Bluetooth | `specs/006-modo-palco` |
-| F12 | PWA offline + pré-cache do setlist ("Baixar Show") | `specs/007-offline-pwa` |
-| F13 | Upload e visualização de PDFs (partituras) | `specs/008-arquivos-pdf` |
+| #   | Funcionalidade                                                                          | Feature Spec                                  |
+| --- | --------------------------------------------------------------------------------------- | --------------------------------------------- |
+| F1  | Autenticação, bandas, membros e papéis (admin/member)                                   | `specs/001-fundacao`                          |
+| F2  | Catálogo de músicas por banda, com abas por instrumento                                 | `specs/001-fundacao`, `specs/003-catalogo-ui` |
+| F3  | Importação "Modo Avançado" (colar texto → parser → AST)                                 | `specs/002-importacao`                        |
+| F4  | Importação por URL (scraper CifraClub) com Tela de Rascunho (HITL)                      | `specs/002-importacao`                        |
+| F5  | Bootstrapping em lote (`batch-import.js` lendo `repertorio.txt`)                        | `specs/002-importacao`                        |
+| F6  | Destaque visual de acordes + transposição de tom (±1 semitom) + capotraste              | `specs/004-inteligencia-musical`              |
+| F7  | Tom preferido salvo por banda (`preferred_key`)                                         | `specs/004-inteligencia-musical`              |
+| F8  | Setlists (CRUD + ordenação)                                                             | `specs/005-setlists-sync`                     |
+| F9  | Sessão ao vivo: sync realtime por eventos, liderança democrática, sugestões, presença   | `specs/005-setlists-sync`                     |
+| F10 | Modo Convidado via link assinado (read-only, escopo = show atual)                       | `specs/005-setlists-sync`                     |
+| F11 | Modo Palco (normal e Extremo), Wake Lock, auto-scroll, pausa por toque, pedal Bluetooth | `specs/006-modo-palco`                        |
+| F12 | PWA offline + pré-cache do setlist ("Baixar Show")                                      | `specs/007-offline-pwa`                       |
+| F13 | Upload e visualização de PDFs (partituras)                                              | `specs/008-arquivos-pdf`                      |
 
 ### 4.2. Backlog (pós-MVP — ver `specs/BACKLOG.md`)
 
@@ -54,17 +54,20 @@ AlphaTab (.gp/MusicXML), Construtor manual de tablaturas, scraper Ultimate Guita
 Registro das mudanças feitas na consolidação dos specs (avaliação crítica sobre a versão do Gemini):
 
 **Mantido como estava (decisões corretas):**
+
 - Sincronia por gatilhos de evento, nunca scroll contínuo via rede.
 - HITL na importação (rascunho antes de gravar).
 - Wrapper defensivo do TonalJS com degradação graciosa.
 - Catálogo por banda (não global) — RLS mais simples e isolamento claro.
 
 **Alterado:**
+
 1. **Scraping rebaixado de "coração da Fase 1" para acelerador.** O caminho primário de entrada de conteúdo é o **Modo Avançado** (colar texto), que é robusto e 100% sob nosso controle. O scraper do CifraClub vem depois, como conveniência. Motivos: fragilidade (mudanças de HTML, WAF) e risco de direitos autorais sobre conteúdo de terceiros. Ultimate Guitar saiu do roadmap comprometido (bloqueia servidores com 403) e virou backlog "se viável".
 2. **Modo Convidado simplificado:** link assinado com token de curta duração em vez de RLS temporário. Menos superfície de erro de segurança.
-3. **Metrônomo audível movido para backlog.** O que o palco precisa é o *clock* do auto-scroll; metrônomo sonoro sincronizado entre devices é um problema difícil (latência de áudio) de pouco valor real — o baterista dá o tempo.
+3. **Metrônomo audível movido para backlog.** O que o palco precisa é o _clock_ do auto-scroll; metrônomo sonoro sincronizado entre devices é um problema difícil (latência de áudio) de pouco valor real — o baterista dá o tempo.
 
 **Adicionado:**
+
 1. **Capotraste (capo)** por música/banda — transposição visual ≠ capo; guitarristas precisam dos dois.
 2. **Tom preferido por banda** (`preferred_key`) — a banda canta no tom dela; a transposição ao vivo parte desse tom, não do original.
 3. **Pré-cache explícito do setlist ("Baixar Show")** — botão que baixa todas as músicas/tabs/PDFs do setlist com indicador de progresso. Cache passivo não garante que a música 12 esteja disponível no palco.
@@ -76,7 +79,7 @@ Registro das mudanças feitas na consolidação dos specs (avaliação crítica 
 As fases mapeiam 1:1 para as pastas de `specs/`. Dependências no `TASKS.md`.
 
 - **Fase 1 — Fundação** (`001`): SvelteKit + Tailwind + Supabase, autenticação, schema completo, RLS.
-- **Fase 2 — Importação Data-First** (`002`): parser texto→AST, Modo Avançado, Tela de Rascunho, scraper CifraClub, `batch-import.js`. *O banco é populado antes de existir UI de catálogo.*
+- **Fase 2 — Importação Data-First** (`002`): parser texto→AST, Modo Avançado, Tela de Rascunho, scraper CifraClub, `batch-import.js`. _O banco é populado antes de existir UI de catálogo._
 - **Fase 3 — Catálogo e UI** (`003`): design system, dashboard, tela da música com abas por instrumento.
 - **Fase 4 — Inteligência Musical** (`004`): destaque de acordes, transposição, capo, tom preferido, unroll.
 - **Fase 5 — Setlists e Sincronia** (`005`): setlists, sessão ao vivo, liderança, sugestões, presença, convidado.

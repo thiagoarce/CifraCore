@@ -6,16 +6,16 @@ Fonte da verdade para stack, esquema de dados, contratos e convenções. Decisõ
 
 ## 1. Infraestrutura e Stack
 
-| Camada | Tecnologia | Observações |
-|---|---|---|
-| Frontend | SvelteKit (PWA, App Shell) | Svelte 5, TypeScript estrito |
-| Hospedagem | Cloudflare Pages | `@sveltejs/adapter-cloudflare` |
-| Estilo | Tailwind CSS | Temas dark (padrão) / light |
-| Banco | Supabase PostgreSQL | RLS em todas as tabelas de tenant |
-| Tempo real | Supabase Realtime | Broadcast (eventos) + Presence |
-| Arquivos | Supabase Storage | Logos e PDFs, bucket por tipo |
-| Importação | Supabase Edge Functions (Deno) | Strategy Pattern por fonte |
-| Auth | Supabase Auth | E-mail/senha no MVP |
+| Camada     | Tecnologia                     | Observações                       |
+| ---------- | ------------------------------ | --------------------------------- |
+| Frontend   | SvelteKit (PWA, App Shell)     | Svelte 5, TypeScript estrito      |
+| Hospedagem | Cloudflare Pages               | `@sveltejs/adapter-cloudflare`    |
+| Estilo     | Tailwind CSS                   | Temas dark (padrão) / light       |
+| Banco      | Supabase PostgreSQL            | RLS em todas as tabelas de tenant |
+| Tempo real | Supabase Realtime              | Broadcast (eventos) + Presence    |
+| Arquivos   | Supabase Storage               | Logos e PDFs, bucket por tipo     |
+| Importação | Supabase Edge Functions (Deno) | Strategy Pattern por fonte        |
+| Auth       | Supabase Auth                  | E-mail/senha no MVP               |
 
 ## 2. Dependências Críticas de Engenharia
 
@@ -56,12 +56,12 @@ Interfaces canônicas em `$lib/types/`. Contrato central do conteúdo musical:
 ```typescript
 // $lib/types/ast.ts
 export interface ASTBlock {
-  id: string;               // UUID obrigatório (chave do {#each})
-  type: 'verse' | 'chorus' | 'solo' | 'bridge' | 'intro' | 'outro';
-  label: string;            // ex: "Parte 1", "Refrão"
-  content: string;          // linhas com acordes inline: "[Am]Letra..."
-  repeats: number;          // >= 1; unroll acontece na camada de dados
-  role?: string;            // voz em duetos: "João", "Maria", "Todos"
+	id: string; // UUID obrigatório (chave do {#each})
+	type: 'verse' | 'chorus' | 'solo' | 'bridge' | 'intro' | 'outro';
+	label: string; // ex: "Parte 1", "Refrão"
+	content: string; // linhas com acordes inline: "[Am]Letra..."
+	repeats: number; // >= 1; unroll acontece na camada de dados
+	role?: string; // voz em duetos: "João", "Maria", "Todos"
 }
 ```
 
@@ -108,14 +108,14 @@ export interface ASTBlock {
 
 ## 7. Registro de Riscos e Mitigações
 
-| # | Risco | Mitigação | Feature dona |
-|---|---|---|---|
-| R1 | TonalJS é rigoroso; cifras "sujas" da web (regionalismos, `A(add9)`, inversões truncadas) retornam `empty` ou quebram a linha | Sanitizer via regex antes do Tonal; se ainda falhar, mantém o acorde original como texto puro (Lei 4) | `004` |
-| R2 | iOS/Android suspendem Web Workers com tela apagada → metrônomo/scroll "saltam" ao reativar | Wake Lock API obrigatória ao entrar no Modo Palco | `006` |
-| R3 | `tweened` do auto-scroll briga com o dedo do músico (stuttering) | `touchstart`/`wheel`/`mousedown` pausam o tweened imediatamente; botão flutuante "Retomar Sincronia" | `006` |
-| R4 | Rede de palco caótica satura WebSocket se sincronizar scroll contínuo | Só eventos de estado via Realtime; clock local em cada device; líder pode emitir `RESYNC` (Lei 3) | `005` |
-| R5 | Scraping frágil: CifraClub muda HTML; Ultimate Guitar bloqueia servidores (403/WAF) | Scraper é acelerador, não dependência: Modo Avançado (colar texto) é o caminho primário; User-Agent de navegador real; UG fica no backlog | `002` |
-| R6 | Unroll de músicas repetitivas gera DOM gigante e engasgos em devices antigos | Unroll computado na camada de dados antes do render; array imutável; `{#each}` com keys (Lei 6) | `004` |
+| #   | Risco                                                                                                                         | Mitigação                                                                                                                                 | Feature dona |
+| --- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| R1  | TonalJS é rigoroso; cifras "sujas" da web (regionalismos, `A(add9)`, inversões truncadas) retornam `empty` ou quebram a linha | Sanitizer via regex antes do Tonal; se ainda falhar, mantém o acorde original como texto puro (Lei 4)                                     | `004`        |
+| R2  | iOS/Android suspendem Web Workers com tela apagada → metrônomo/scroll "saltam" ao reativar                                    | Wake Lock API obrigatória ao entrar no Modo Palco                                                                                         | `006`        |
+| R3  | `tweened` do auto-scroll briga com o dedo do músico (stuttering)                                                              | `touchstart`/`wheel`/`mousedown` pausam o tweened imediatamente; botão flutuante "Retomar Sincronia"                                      | `006`        |
+| R4  | Rede de palco caótica satura WebSocket se sincronizar scroll contínuo                                                         | Só eventos de estado via Realtime; clock local em cada device; líder pode emitir `RESYNC` (Lei 3)                                         | `005`        |
+| R5  | Scraping frágil: CifraClub muda HTML; Ultimate Guitar bloqueia servidores (403/WAF)                                           | Scraper é acelerador, não dependência: Modo Avançado (colar texto) é o caminho primário; User-Agent de navegador real; UG fica no backlog | `002`        |
+| R6  | Unroll de músicas repetitivas gera DOM gigante e engasgos em devices antigos                                                  | Unroll computado na camada de dados antes do render; array imutável; `{#each}` com keys (Lei 6)                                           | `004`        |
 
 ## 8. Modelo de Delegação
 

@@ -2,7 +2,7 @@
 
 ## Decisões Técnicas
 
-- **Um parser, três entradas.** `parseChordSheet` vive em `$lib/utils/chordSheetParser.ts` (função pura, testável). A Edge Function reimplementa apenas a *extração* do HTML (título, artista, tom, texto bruto) e reutiliza a mesma lógica de blocos — o código do parser é compartilhado via cópia controlada em `supabase/functions/_shared/` (Deno não importa de `$lib`; manter os dois sincronizados é responsabilidade da tarefa, com o mesmo arquivo de casos de teste).
+- **Um parser, três entradas.** `parseChordSheet` vive em `$lib/utils/chordSheetParser.ts` (função pura, testável). A Edge Function reimplementa apenas a _extração_ do HTML (título, artista, tom, texto bruto) e reutiliza a mesma lógica de blocos — o código do parser é compartilhado via cópia controlada em `supabase/functions/_shared/` (Deno não importa de `$lib`; manter os dois sincronizados é responsabilidade da tarefa, com o mesmo arquivo de casos de teste).
 - **Strategy Pattern na Edge Function:**
 
 ```

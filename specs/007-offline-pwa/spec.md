@@ -17,6 +17,7 @@
 ## Cenários de Comportamento (Gherkin)
 
 **Cenário: Baixar Show completo**
+
 - **Dado** um setlist com 15 músicas, uma delas com tab em PDF
 - **Quando** o usuário toca "Baixar Show"
 - **Então** o progresso avança até 15/15
@@ -24,6 +25,7 @@
 - **E** o PDF também foi armazenado localmente.
 
 **Cenário: Tocar offline**
+
 - **Dado** que o setlist foi baixado com sucesso
 - **E** o device está em modo avião
 - **Quando** o músico abre qualquer música do setlist
@@ -32,12 +34,14 @@
 - **E** o app está em modo Individual com o aviso correto.
 
 **Cenário: Falha parcial no download**
+
 - **Dado** que a rede caiu na música 12 de 15
 - **Quando** o download falha
 - **Então** as músicas 1–11 permanecem ✓ e as restantes mostram ✗ com botão "Tentar novamente"
 - **E** nenhum estado fica corrompido (retry completa só o que falta).
 
 **Cenário: Atualização do app não interrompe uso**
+
 - **Dado** que uma nova versão foi deployada
 - **Quando** o usuário abre o app
 - **Então** a versão em cache abre normalmente

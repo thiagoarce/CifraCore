@@ -19,26 +19,26 @@ Dar cara ao app: design system com temas dark/light, dashboard com o catálogo d
 
 ### Paleta Dark Mode (padrão de palco)
 
-| Papel | Classe | Hex |
-|---|---|---|
-| Fundo App | `bg-slate-900` | `#0f172a` |
-| Fundo Containers (cards/menu) | `bg-slate-800` | `#1e293b` |
-| Texto Principal (letra) | `text-slate-50` | `#f8fafc` |
-| Texto Secundário (UI/menus) | `text-slate-400` | `#94a3b8` |
-| Voz inativa (duetos) | `text-slate-500` + opacity 50% | `#64748b` |
-| Destaque de Acorde / Voz ativa | `text-amber-400` | `#fbbf24` |
-| Acentos e Botões Primários | `bg-indigo-500` | `#6366f1` |
+| Papel                          | Classe                         | Hex       |
+| ------------------------------ | ------------------------------ | --------- |
+| Fundo App                      | `bg-slate-900`                 | `#0f172a` |
+| Fundo Containers (cards/menu)  | `bg-slate-800`                 | `#1e293b` |
+| Texto Principal (letra)        | `text-slate-50`                | `#f8fafc` |
+| Texto Secundário (UI/menus)    | `text-slate-400`               | `#94a3b8` |
+| Voz inativa (duetos)           | `text-slate-500` + opacity 50% | `#64748b` |
+| Destaque de Acorde / Voz ativa | `text-amber-400`               | `#fbbf24` |
+| Acentos e Botões Primários     | `bg-indigo-500`                | `#6366f1` |
 
 ### Paleta Light Mode (ensaios/estudo de dia)
 
-| Papel | Classe | Hex |
-|---|---|---|
-| Fundo App | `bg-slate-50` | `#f8fafc` |
-| Fundo Containers | `bg-white` | `#ffffff` |
-| Texto Principal | `text-slate-900` | `#0f172a` |
-| Texto Secundário | `text-slate-500` | `#64748b` |
-| Destaque de Acorde | `text-blue-600` | `#2563eb` |
-| Acentos e Botões Primários | `bg-indigo-600` | `#4f46e5` |
+| Papel                      | Classe           | Hex       |
+| -------------------------- | ---------------- | --------- |
+| Fundo App                  | `bg-slate-50`    | `#f8fafc` |
+| Fundo Containers           | `bg-white`       | `#ffffff` |
+| Texto Principal            | `text-slate-900` | `#0f172a` |
+| Texto Secundário           | `text-slate-500` | `#64748b` |
+| Destaque de Acorde         | `text-blue-600`  | `#2563eb` |
+| Acentos e Botões Primários | `bg-indigo-600`  | `#4f46e5` |
 
 ## Wireframe — Tela da Música (Modo Normal)
 
@@ -64,17 +64,20 @@ O rodapé flutuante (sugestão/líder/modo palco) é montado aqui como component
 ## Cenários de Comportamento (Gherkin)
 
 **Cenário: Aba do instrumento preferido**
+
 - **Dado** que a música "Tempo Perdido" tem tabs `cifra` e `bass`
 - **E** o usuário tem `instrument = 'bass'` no localStorage
 - **Quando** ele abre a tela da música
 - **Então** a aba "Baixo" está ativa por padrão.
 
 **Cenário: Voz ativa em dueto**
+
 - **Dado** um AST com blocos `role: "João"` e `role: "Maria"`
 - **Quando** o usuário seleciona a voz "João"
 - **Então** as linhas de Maria renderizam com opacidade 50% e as de João em destaque.
 
 **Cenário: Tema padrão**
+
 - **Dado** um usuário novo sem preferência salva
 - **Quando** ele abre o app
 - **Então** o tema é dark; ao alternar para light, a escolha persiste após reload.

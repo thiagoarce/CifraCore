@@ -17,28 +17,33 @@ Transformar o texto da cifra em conteúdo musical vivo: acordes detectados e des
 ## Cenários de Comportamento (Gherkin)
 
 **Cenário: Transposição básica**
+
 - **Dado** a cifra com acordes `Am`, `C`, `G`
 - **Quando** o usuário toca `[+]` uma vez
 - **Então** a tela exibe `A#m` (ou `Bbm` conforme preferência enarmônica do wrapper), `C#`, `G#`
 - **E** o AST original no banco permanece inalterado.
 
 **Cenário: Acorde sujo não quebra a tela**
+
 - **Dado** um conteúdo com o token `A(add9`(malformado) numa linha de acordes
 - **Quando** o usuário transpõe o tom
 - **Então** os acordes válidos da linha transpõem
 - **E** o token malformado permanece como texto puro original, sem destaque e sem erro no console.
 
 **Cenário: Tom preferido da banda**
+
 - **Dado** que "Tempo Perdido" tem `original_key: C` e `preferred_key: D`
 - **Quando** qualquer membro abre a música
 - **Então** os acordes exibem no tom D (offset +2 aplicado por padrão).
 
 **Cenário: Capo**
+
 - **Dado** `preferred_key: D` e `capo: 2`
 - **Quando** a música abre na aba Cifra
 - **Então** o indicador mostra "Capo: 2ª casa" e os acordes escritos aparecem em C (soando D).
 
 **Cenário: Unroll de refrão**
+
 - **Dado** um AST com refrão `repeats: 3`
 - **Quando** a tela renderiza
 - **Então** o refrão aparece 3 vezes em sequência, cada instância com key única no DOM

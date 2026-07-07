@@ -26,15 +26,15 @@ AST original (banco, imutável)
 ```typescript
 // $lib/types/music.ts
 export interface ParsedChord {
-  root: string;        // "C#"
-  suffix: string;      // "m7"
-  bass?: string;       // "G#" (inversão)
+	root: string; // "C#"
+	suffix: string; // "m7"
+	bass?: string; // "G#" (inversão)
 }
 
 export interface RenderedLine {
-  kind: 'chords' | 'lyrics' | 'mixed';
-  segments: Array<{ text: string; isChord: boolean }>;
-  role?: string;
+	kind: 'chords' | 'lyrics' | 'mixed';
+	segments: Array<{ text: string; isChord: boolean }>;
+	role?: string;
 }
 ```
 

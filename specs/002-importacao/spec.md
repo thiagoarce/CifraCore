@@ -24,6 +24,7 @@ Nota de produto: o scraping é conveniência, não dependência (ver PRD §5 e r
 ### Funcionalidade: Importação Fricção Zero (HITL)
 
 **Cenário: Validação humana de cifra importada por URL**
+
 - **Dado** que o usuário submeteu a URL "cifraclub.com.br/legiao-urbana/tempo-perdido/"
 - **Quando** a Edge Function retorna o JSON (AST) da cifra
 - **Então** o sistema NÃO faz INSERT nas tabelas `songs`/`song_tabs`
@@ -32,6 +33,7 @@ Nota de produto: o scraping é conveniência, não dependência (ver PRD §5 e r
 - **Então** o sistema insere o payload validado em `songs` e `song_tabs` (content_type `'ast'`).
 
 **Cenário: Scraper bloqueado degrada para Modo Avançado**
+
 - **Dado** que o CifraClub respondeu 403 ou o HTML mudou
 - **Quando** a Edge Function retorna `{ success: false, error: ... }`
 - **Então** a UI exibe o erro de forma amigável
@@ -40,12 +42,14 @@ Nota de produto: o scraping é conveniência, não dependência (ver PRD §5 e r
 ### Funcionalidade: Modo Avançado
 
 **Cenário: Colar texto vira AST**
+
 - **Dado** que o usuário colou uma cifra com seções "Intro", "Verso" e "Refrão (2x)"
 - **Quando** ele clica em "Processar"
 - **Então** a Tela de Rascunho mostra 3 blocos com `type` correto e `repeats: 2` no refrão
 - **E** nenhuma linha do texto original foi perdida (conteúdo íntegro, mesmo o não reconhecido).
 
 **Cenário: Texto irreconhecível não quebra**
+
 - **Dado** um texto sem nenhuma estrutura reconhecível
 - **Quando** o parser processa
 - **Então** retorna um único bloco `type: 'verse'`, `label: 'Parte 1'` com o texto íntegro (degradação graciosa, Lei 4).
@@ -53,6 +57,7 @@ Nota de produto: o scraping é conveniência, não dependência (ver PRD §5 e r
 ### Funcionalidade: Bootstrapping (Data-First)
 
 **Cenário: Importação em lote**
+
 - **Dado** um `repertorio.txt` com 20 entradas válidas e 2 URLs quebradas
 - **Quando** o script roda
 - **Então** 20 músicas são inseridas para a banda alvo
