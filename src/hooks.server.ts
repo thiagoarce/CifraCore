@@ -58,6 +58,10 @@ const authGuard: Handle = async ({ event, resolve }) => {
 
 	const routeId = event.route.id ?? '';
 
+	if (routeId === '/') {
+		redirect(303, session ? '/dashboard' : '/login');
+	}
+
 	if (!session && routeId.startsWith('/(app)')) {
 		redirect(303, '/login');
 	}
