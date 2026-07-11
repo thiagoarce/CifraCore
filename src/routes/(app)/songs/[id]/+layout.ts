@@ -1,8 +1,8 @@
 import { error } from '@sveltejs/kit';
 
-import type { PageLoad } from './$types';
+import type { LayoutLoad } from './$types';
 
-export const load: PageLoad = async ({ parent, params, depends }) => {
+export const load: LayoutLoad = async ({ parent, params, depends }) => {
 	depends('app:song');
 
 	const { supabase, bands } = await parent();

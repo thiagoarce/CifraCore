@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(11);
+select plan(14);
 
 -- Fixtures --------------------------------------------------------------
 
@@ -152,6 +152,70 @@ select is(
     where s.source_url = 'https://www.cifraclub.com.br/legiao-urbana/faroeste-caboclo/'),
   'v2 atualizado',
   'overwrite replaced the tab content (upsert on song_id+instrument)'
+);
+
+-- Editing (spec 003-catalogo-ui T4): capo/bpm/preferred_key via existing_song_id ---
+
+set local role authenticated;
+do $$ begin
+  perform set_config('request.jwt.claims',
+    '{"sub":"00000000-0000-0000-0000-000000000010","role":"authenticated"}', true);
+end $$;
+
+select lives_ok(
+  format(
+    $sql$
+      select public.import_song(
+        target_band => '10000000-0000-0000-0000-00000000000c',
+        song_title => 'Tempo Perdido',
+        song_artist => 'Legião Urbana',
+        song_original_key => 'C',
+        tab_instrument => 'cifra',
+        tab_content => '[{"id":"11111111-1111-1111-1111-111111111111","type":"verse","label":"Parte 1","content":"la la la","repeats":1}]'::jsonb,
+        existing_song_id => %L,
+        song_capo => 2,
+        song_bpm => 120,
+        song_preferred_key => 'D'
+      )
+    $sql$,
+    (select id from public.songs where title = 'Tempo Perdido')
+  ),
+  'admin edits capo/bpm/preferred_key via existing_song_id'
+);
+
+select results_eq(
+  $sql$
+    select capo, bpm, preferred_key from public.songs where title = 'Tempo Perdido'
+  $sql$,
+  $sql$ values (2, 120, 'D') $sql$,
+  'capo/bpm/preferred_key were persisted by the edit'
+);
+
+reset role;
+
+-- As member: editing is blocked the same way importing is (RLS, not the UI) --
+
+set local role authenticated;
+do $$ begin
+  perform set_config('request.jwt.claims',
+    '{"sub":"00000000-0000-0000-0000-000000000011","role":"authenticated"}', true);
+end $$;
+
+select throws_ok(
+  format(
+    $sql$
+      select public.import_song(
+        target_band => '10000000-0000-0000-0000-00000000000c',
+        song_title => 'Hackeado pelo member',
+        song_artist => null, song_original_key => null, tab_instrument => 'cifra',
+        tab_content => '[{"id":"1","type":"verse","label":"x","content":"x","repeats":1}]'::jsonb,
+        existing_song_id => %L
+      )
+    $sql$,
+    (select id from public.songs where title = 'Tempo Perdido')
+  ),
+  'P0001', 'song not found in this band',
+  'plain member cannot edit an existing song either (RLS blocks the update)'
 );
 
 reset role;

@@ -344,7 +344,10 @@ export type Database = {
 				Args: {
 					existing_song_id?: string;
 					song_artist: string;
+					song_bpm?: number;
+					song_capo?: number;
 					song_original_key: string;
+					song_preferred_key?: string;
 					song_source_url?: string;
 					song_title: string;
 					tab_content: Json;

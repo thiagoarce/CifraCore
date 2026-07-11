@@ -3,29 +3,13 @@
 	import { resolve } from '$app/paths';
 	import { currentBand } from '$lib/stores/currentBand';
 	import { parseChordSheet } from '$lib/utils/chordSheetParser';
-	import type { ASTBlock, BlockType } from '$lib/types/ast';
+	import DraftEditor from '$lib/components/song/DraftEditor.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import type { ASTBlock } from '$lib/types/ast';
 	import type { Database, Json } from '$lib/types/database';
 
 	type Instrument = Database['public']['Enums']['instrument'];
 	type Mode = 'paste' | 'draft' | 'saved';
-
-	const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
-		intro: 'Intro',
-		verse: 'Verso',
-		chorus: 'Refrão',
-		bridge: 'Ponte',
-		solo: 'Solo',
-		outro: 'Final'
-	};
-
-	const INSTRUMENT_LABELS: Record<Instrument, string> = {
-		cifra: 'Cifra (letra + acordes)',
-		vocal: 'Vocal',
-		guitar: 'Violão / Guitarra',
-		bass: 'Baixo',
-		drums: 'Bateria',
-		keys: 'Teclado'
-	};
 
 	interface ImportTabDraft {
 		title: string;
@@ -180,19 +164,6 @@
 		dedupe = null;
 	}
 
-	function moveBlock(index: number, direction: -1 | 1) {
-		const target = index + direction;
-		if (target < 0 || target >= draftBlocks.length) return;
-
-		const next = draftBlocks.slice();
-		[next[index], next[target]] = [next[target], next[index]];
-		draftBlocks = next;
-	}
-
-	function removeBlock(index: number) {
-		draftBlocks = [...draftBlocks.slice(0, index), ...draftBlocks.slice(index + 1)];
-	}
-
 	function backToPaste() {
 		mode = 'paste';
 		saveError = null;
@@ -254,86 +225,69 @@
 	}
 </script>
 
-<main class="min-h-screen bg-slate-900 p-6 text-slate-50">
+<main class="min-h-screen bg-surface p-6 text-content">
 	<div class="mx-auto max-w-3xl">
-		<a href={resolve('/dashboard')} class="text-sm text-slate-400 hover:text-slate-50">
+		<a href={resolve('/dashboard')} class="text-sm text-content-muted hover:text-content">
 			&larr; Dashboard
 		</a>
 
 		<h1 class="mt-4 text-xl font-semibold">Importar Música</h1>
 		{#if $currentBand}
-			<p class="mt-1 text-sm text-slate-400">Banda ativa: {$currentBand.name}</p>
+			<p class="mt-1 text-sm text-content-muted">Banda ativa: {$currentBand.name}</p>
 		{/if}
 
 		{#if !$currentBand}
-			<p class="mt-6 rounded-lg bg-slate-800 p-4 text-sm text-slate-400">
+			<p class="mt-6 rounded-lg bg-surface-raised p-4 text-sm text-content-muted">
 				Selecione uma banda ativa em
-				<a href={resolve('/bands')} class="text-indigo-400 hover:text-indigo-300">Minhas Bandas</a>
+				<a href={resolve('/bands')} class="text-accent hover:opacity-80">Minhas Bandas</a>
 				antes de importar.
 			</p>
 		{:else if !canImport}
-			<p class="mt-6 rounded-lg bg-slate-800 p-4 text-sm text-slate-400">
+			<p class="mt-6 rounded-lg bg-surface-raised p-4 text-sm text-content-muted">
 				Apenas administradores da banda podem importar músicas.
 			</p>
 		{:else if mode === 'paste' && dedupe}
-			<section class="mt-6 rounded-lg bg-slate-800 p-4">
-				<h2 class="text-sm font-medium text-slate-50">Música já importada</h2>
-				<p class="mt-1 text-sm text-slate-400">
+			<section class="mt-6 rounded-lg bg-surface-raised p-4">
+				<h2 class="text-sm font-medium text-content">Música já importada</h2>
+				<p class="mt-1 text-sm text-content-muted">
 					Já existe uma música importada desta URL: "{dedupe.existingTitle}". Sobrescrever a tab
 					existente ou cancelar?
 				</p>
 				<div class="mt-3 flex gap-2">
-					<button
-						type="button"
-						onclick={cancelDedupe}
-						class="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-50"
-					>
-						Cancelar
-					</button>
-					<button
-						type="button"
-						onclick={confirmOverwrite}
-						class="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-slate-50"
-					>
-						Sobrescrever
-					</button>
+					<Button variant="secondary" onclick={cancelDedupe}>Cancelar</Button>
+					<Button variant="primary" onclick={confirmOverwrite}>Sobrescrever</Button>
 				</div>
 			</section>
 		{:else if mode === 'paste'}
-			<section class="mt-6 rounded-lg bg-slate-800 p-4">
-				<h2 class="text-sm font-medium text-slate-50">Importar por URL</h2>
-				<p class="mt-1 text-sm text-slate-400">Cole o link de uma música do CifraClub.</p>
+			<section class="mt-6 rounded-lg bg-surface-raised p-4">
+				<h2 class="text-sm font-medium text-content">Importar por URL</h2>
+				<p class="mt-1 text-sm text-content-muted">Cole o link de uma música do CifraClub.</p>
 				<div class="mt-3 flex gap-2">
 					<input
 						type="url"
 						bind:value={urlValue}
 						placeholder="https://www.cifraclub.com.br/artista/musica/"
-						class="flex-1 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-50 outline-none focus:border-indigo-500"
+						class="h-11 flex-1 rounded-md border border-border bg-surface px-3 text-content outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent"
 					/>
-					<button
-						type="button"
-						onclick={handleUrlImport}
-						disabled={urlLoading}
-						class="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-slate-50 disabled:opacity-60"
-					>
-						{urlLoading ? 'Importando...' : 'Importar por URL'}
-					</button>
+					<Button variant="primary" onclick={handleUrlImport} loading={urlLoading}>
+						Importar por URL
+					</Button>
 				</div>
 				{#if urlError}
-					<p class="mt-2 text-sm text-red-400" role="alert">{urlError}</p>
+					<p class="mt-2 text-sm text-danger" role="alert">{urlError}</p>
 					<button
 						type="button"
 						onclick={focusPasteTextarea}
-						class="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
+						class="mt-2 cursor-pointer text-sm text-accent hover:opacity-80"
 					>
 						Colar cifra manualmente
 					</button>
 				{/if}
 			</section>
 
-			<section class="mt-6 rounded-lg bg-slate-800 p-4">
-				<h2 class="text-sm font-medium text-slate-50">Modo Avançado — colar cifra</h2>
-				<p class="mt-1 text-sm text-slate-400">
+			<section class="mt-6 rounded-lg bg-surface-raised p-4">
+				<h2 class="text-sm font-medium text-content">Modo Avançado — colar cifra</h2>
+				<p class="mt-1 text-sm text-content-muted">
 					Cole o texto da cifra (com seções como "Refrão", "[Intro]" etc.) e clique em Processar.
 				</p>
 				<textarea
@@ -344,181 +298,39 @@
 
 Refrão
 Letra da música aqui..."
-					class="mt-3 w-full rounded-md border border-slate-700 bg-slate-900 p-3 font-mono text-sm whitespace-pre text-slate-50 outline-none focus:border-indigo-500"
+					class="mt-3 w-full rounded-md border border-border bg-surface p-3 font-mono text-sm whitespace-pre text-content outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent"
 				></textarea>
 				{#if processError}
-					<p class="mt-2 text-sm text-red-400" role="alert">{processError}</p>
+					<p class="mt-2 text-sm text-danger" role="alert">{processError}</p>
 				{/if}
-				<button
-					type="button"
-					onclick={processPaste}
-					class="mt-3 rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-slate-50"
-				>
-					Processar
-				</button>
+				<div class="mt-3">
+					<Button variant="primary" onclick={processPaste}>Processar</Button>
+				</div>
 			</section>
 		{:else if mode === 'draft'}
-			<section class="mt-6 rounded-lg bg-slate-800 p-4">
-				<h2 class="text-sm font-medium text-slate-50">Rascunho</h2>
-				<p class="mt-1 text-sm text-slate-400">
-					Revise os dados e os blocos antes de gravar. Nada é salvo até "Aprovar e Gravar".
-				</p>
-
-				<div class="mt-4 grid gap-3 sm:grid-cols-2">
-					<label class="flex flex-col gap-1">
-						<span class="text-sm text-slate-400">Título *</span>
-						<input
-							type="text"
-							required
-							bind:value={draftTitle}
-							class="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-50 outline-none focus:border-indigo-500"
-						/>
-					</label>
-					<label class="flex flex-col gap-1">
-						<span class="text-sm text-slate-400">Artista</span>
-						<input
-							type="text"
-							bind:value={draftArtist}
-							class="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-50 outline-none focus:border-indigo-500"
-						/>
-					</label>
-					<label class="flex flex-col gap-1">
-						<span class="text-sm text-slate-400">Tom original</span>
-						<input
-							type="text"
-							bind:value={draftOriginalKey}
-							placeholder="Ex: C, Am, G#m"
-							class="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-50 outline-none focus:border-indigo-500"
-						/>
-					</label>
-					<label class="flex flex-col gap-1">
-						<span class="text-sm text-slate-400">Instrumento desta tab</span>
-						<select
-							bind:value={draftInstrument}
-							class="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-50 outline-none focus:border-indigo-500"
-						>
-							{#each Object.entries(INSTRUMENT_LABELS) as [value, label] (value)}
-								<option {value}>{label}</option>
-							{/each}
-						</select>
-					</label>
-				</div>
-
-				<h3 class="mt-6 text-sm font-medium text-slate-50">Blocos ({draftBlocks.length})</h3>
-				<div class="mt-3 flex flex-col gap-3">
-					{#each draftBlocks as block, index (block.id)}
-						<div class="rounded-md border border-slate-700 bg-slate-900 p-3">
-							<div class="flex flex-wrap items-center gap-2">
-								<input
-									type="text"
-									bind:value={block.label}
-									aria-label="Rótulo do bloco"
-									class="min-w-0 flex-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-50 outline-none focus:border-indigo-500"
-								/>
-								<select
-									bind:value={block.type}
-									aria-label="Tipo do bloco"
-									class="rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-50 outline-none focus:border-indigo-500"
-								>
-									{#each Object.entries(BLOCK_TYPE_LABELS) as [value, label] (value)}
-										<option {value}>{label}</option>
-									{/each}
-								</select>
-								<label class="flex items-center gap-1 text-sm text-slate-400">
-									Repetições
-									<input
-										type="number"
-										min="1"
-										bind:value={block.repeats}
-										class="w-16 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-slate-50 outline-none focus:border-indigo-500"
-									/>
-								</label>
-								<input
-									type="text"
-									bind:value={block.role}
-									placeholder="Voz (opcional)"
-									aria-label="Voz do bloco"
-									class="w-32 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-50 outline-none focus:border-indigo-500"
-								/>
-							</div>
-
-							<textarea
-								bind:value={block.content}
-								rows="4"
-								aria-label="Conteúdo do bloco"
-								class="mt-2 w-full rounded-md border border-slate-700 bg-slate-800 p-2 font-mono text-sm whitespace-pre text-slate-50 outline-none focus:border-indigo-500"
-							></textarea>
-
-							<div class="mt-2 flex justify-end gap-2">
-								<button
-									type="button"
-									onclick={() => moveBlock(index, -1)}
-									disabled={index === 0}
-									class="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-50 disabled:opacity-30"
-								>
-									Mover ↑
-								</button>
-								<button
-									type="button"
-									onclick={() => moveBlock(index, 1)}
-									disabled={index === draftBlocks.length - 1}
-									class="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-50 disabled:opacity-30"
-								>
-									Mover ↓
-								</button>
-								<button
-									type="button"
-									onclick={() => removeBlock(index)}
-									class="rounded-md border border-slate-700 px-2 py-1 text-xs text-red-400 hover:border-red-400"
-								>
-									Remover
-								</button>
-							</div>
-						</div>
-					{/each}
-				</div>
-
-				{#if saveError}
-					<p class="mt-3 text-sm text-red-400" role="alert">{saveError}</p>
-				{/if}
-
-				<div class="mt-4 flex gap-2">
-					<button
-						type="button"
-						onclick={backToPaste}
-						class="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-50"
-					>
-						Voltar
-					</button>
-					<button
-						type="button"
-						onclick={handleSave}
-						disabled={saving}
-						class="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-slate-50 disabled:opacity-60"
-					>
-						{saving ? 'Gravando...' : 'Aprovar e Gravar'}
-					</button>
-				</div>
-			</section>
+			<div class="mt-6">
+				<DraftEditor
+					bind:title={draftTitle}
+					bind:artist={draftArtist}
+					bind:originalKey={draftOriginalKey}
+					bind:instrument={draftInstrument}
+					bind:blocks={draftBlocks}
+					{saving}
+					{saveError}
+					onSave={handleSave}
+					onCancel={backToPaste}
+				/>
+			</div>
 		{:else if mode === 'saved'}
-			<section class="mt-6 rounded-lg bg-slate-800 p-4">
-				<h2 class="text-sm font-medium text-slate-50">Música gravada com sucesso</h2>
-				<p class="mt-1 text-sm text-slate-400">
+			<section class="mt-6 rounded-lg bg-surface-raised p-4">
+				<h2 class="text-sm font-medium text-content">Música gravada com sucesso</h2>
+				<p class="mt-1 text-sm text-content-muted">
 					"{draftTitle}" foi adicionada ao catálogo de {$currentBand.name}.
 				</p>
 				<div class="mt-4 flex gap-2">
-					<button
-						type="button"
-						onclick={importAnother}
-						class="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-slate-50"
-					>
-						Importar outra
-					</button>
-					<a
-						href={resolve('/dashboard')}
-						class="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-50"
-					>
-						Ir para o Dashboard
+					<Button variant="primary" onclick={importAnother}>Importar outra</Button>
+					<a href={resolve('/dashboard')}>
+						<Button variant="secondary">Ir para o Dashboard</Button>
 					</a>
 				</div>
 			</section>
