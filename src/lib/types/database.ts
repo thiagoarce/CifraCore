@@ -340,6 +340,17 @@ export type Database = {
 		};
 		Functions: {
 			create_band: { Args: { band_name: string }; Returns: string };
+			import_song: {
+				Args: {
+					song_artist: string;
+					song_original_key: string;
+					song_title: string;
+					tab_content: Json;
+					tab_instrument: Database['public']['Enums']['instrument'];
+					target_band: string;
+				};
+				Returns: string;
+			};
 			invite_band_member: {
 				Args: { member_email: string; target_band: string };
 				Returns: string;

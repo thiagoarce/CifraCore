@@ -32,7 +32,18 @@ supabase/functions/
   - Linha de acordes: >60% dos tokens casam com o regex de acorde (`^[A-G][#b]?...`). Não valida teoria musical aqui (isso é spec 004) — só classifica a linha.
   - Blocos delimitados por linhas-rótulo ou por linhas em branco duplas.
   - Fallback: tudo vira um bloco único (nunca lançar exceção — Lei 4).
-- **Tela de Rascunho:** rota `/(app)/import`, estado local (não persiste rascunho no MVP). Campos: title, artist, original_key, instrument alvo da tab, lista de blocos (editar label/type/repeats/role/conteúdo, reordenar, remover). "Aprovar e Gravar" = uma transação: INSERT `songs` + INSERT `song_tabs`.
+- **Tela de Rascunho:** rota `/(app)/import`, estado local (não persiste rascunho no MVP). Campos: title, artist, original_key, instrument alvo da tab, lista de blocos (editar label/type/repeats/role/conteúdo, reordenar via botões ↑/↓, remover). Reordenação por drag-and-drop fica de fora do MVP (custo de dependência não justificado; botões cumprem o requisito "reordenar" do spec).
+- **RPC `import_song` (transação real):** dois `INSERT` client-side separados (`songs` depois `song_tabs`) não são atômicos — se o segundo falhar, sobra uma música sem tab. Em vez disso, "Aprovar e Gravar" chama uma RPC `security invoker` (mesmo padrão de `create_band`/`invite_band_member`, spec 001) que faz os dois inserts numa transação Postgres:
+
+```sql
+import_song(target_band uuid, song_title text, song_artist text, song_original_key text, tab_instrument instrument, tab_content jsonb) returns uuid
+```
+
+Roda com o privilégio de quem chama (RLS de `songs`/`song_tabs` — admin-only — se aplica normalmente); valida título não vazio e `tab_content` como array não vazio; devolve o `song_id` criado. Sem `SECURITY DEFINER`: não eleva privilégio, só agrupa as duas escritas.
+
+- **Sem instrument.enum "cifra" mágico:** o seletor de instrumento no Rascunho lista o enum `instrument` completo (`vocal, guitar, bass, drums, keys, cifra`), com `cifra` pré-selecionado por padrão (é o formato mais comum do que se cola/importa: letra com acordes inline).
+- **Permissão:** import (RPC `import_song`) é escrita em `songs`/`song_tabs`, logo admin-only por RLS (spec 001). A UI verifica `role === 'admin'` da banda ativa (mesmo padrão de `bands/[id]`) e mostra aviso em vez do formulário para `member`, evitando uma chamada que a RLS rejeitaria de qualquer forma.
+- **Pós-gravação:** redireciona para `/dashboard` (não existe tela de música ainda — spec 003) com mensagem de sucesso local.
 - **`batch-import.js`:** Node puro na raiz, usa `@supabase/supabase-js` com `SUPABASE_SERVICE_KEY` (env). Formato do `repertorio.txt`: uma entrada por linha, `Título; Artista; URL-ou-ARQUIVO.txt`. Linhas iniciadas com `#` são comentário. URLs passam pela Edge Function; caminhos locais passam pelo parser. Grava direto (sem HITL — uso consciente de bootstrap, documentado no help do script).
 
 ## Contratos
