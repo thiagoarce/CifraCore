@@ -4,7 +4,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(6);
+select plan(11);
 
 -- Fixtures --------------------------------------------------------------
 
@@ -98,6 +98,60 @@ select throws_ok(
   $sql$ select public.import_song('10000000-0000-0000-0000-00000000000c', 'No Blocks', null, null, 'cifra', '[]'::jsonb) $sql$,
   'P0001', 'tab content must be a non-empty array of AST blocks',
   'empty AST array is rejected before any insert'
+);
+
+-- URL import with source_url, then dedupe/overwrite (spec 002 R6) --------
+
+select lives_ok(
+  $sql$
+    select public.import_song(
+      '10000000-0000-0000-0000-00000000000c',
+      'Faroeste Caboclo',
+      'Legião Urbana',
+      'D',
+      'cifra',
+      '[{"id":"33333333-3333-3333-3333-333333333333","type":"verse","label":"Parte 1","content":"v1","repeats":1}]'::jsonb,
+      'https://www.cifraclub.com.br/legiao-urbana/faroeste-caboclo/'
+    )
+  $sql$,
+  'import via URL persists source_url'
+);
+
+select is(
+  (select source_url from public.songs where title = 'Faroeste Caboclo'),
+  'https://www.cifraclub.com.br/legiao-urbana/faroeste-caboclo/',
+  'source_url was stored for dedupe lookups'
+);
+
+select lives_ok(
+  format(
+    $sql$
+      select public.import_song(
+        '10000000-0000-0000-0000-00000000000c',
+        'Faroeste Caboclo (revisado)',
+        'Legião Urbana', 'D', 'cifra',
+        '[{"id":"44444444-4444-4444-4444-444444444444","type":"verse","label":"Parte 1","content":"v2 atualizado","repeats":1}]'::jsonb,
+        'https://www.cifraclub.com.br/legiao-urbana/faroeste-caboclo/',
+        %L
+      )
+    $sql$,
+    (select id from public.songs where title = 'Faroeste Caboclo')
+  ),
+  'overwriting an existing import (existing_song_id set) updates in place'
+);
+
+select is(
+  (select count(*)::int from public.songs where source_url = 'https://www.cifraclub.com.br/legiao-urbana/faroeste-caboclo/'),
+  1,
+  'overwrite did not create a second song for the same source_url'
+);
+
+select is(
+  (select st.content->0->>'content' from public.song_tabs st
+     join public.songs s on s.id = st.song_id
+    where s.source_url = 'https://www.cifraclub.com.br/legiao-urbana/faroeste-caboclo/'),
+  'v2 atualizado',
+  'overwrite replaced the tab content (upsert on song_id+instrument)'
 );
 
 reset role;

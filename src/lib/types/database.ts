@@ -342,8 +342,10 @@ export type Database = {
 			create_band: { Args: { band_name: string }; Returns: string };
 			import_song: {
 				Args: {
+					existing_song_id?: string;
 					song_artist: string;
 					song_original_key: string;
+					song_source_url?: string;
 					song_title: string;
 					tab_content: Json;
 					tab_instrument: Database['public']['Enums']['instrument'];

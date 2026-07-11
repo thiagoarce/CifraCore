@@ -27,6 +27,20 @@
 		keys: 'Teclado'
 	};
 
+	interface ImportTabDraft {
+		title: string;
+		artist: string;
+		original_key: string | null;
+		ast: ASTBlock[];
+	}
+
+	interface DedupeState {
+		existingId: string;
+		existingTitle: string;
+		draft: ImportTabDraft;
+		sourceUrl: string;
+	}
+
 	let { data } = $props();
 
 	const currentBandRole = $derived(
@@ -37,15 +51,38 @@
 	let mode = $state<Mode>('paste');
 	let pasteText = $state('');
 	let processError = $state<string | null>(null);
+	let pasteTextareaEl = $state<HTMLTextAreaElement | undefined>(undefined);
+
+	let urlValue = $state('');
+	let urlLoading = $state(false);
+	let urlError = $state<string | null>(null);
+	let dedupe = $state<DedupeState | null>(null);
 
 	let draftTitle = $state('');
 	let draftArtist = $state('');
 	let draftOriginalKey = $state('');
 	let draftInstrument = $state<Instrument>('cifra');
 	let draftBlocks = $state<ASTBlock[]>([]);
+	let draftSourceUrl = $state<string | null>(null);
+	let draftExistingSongId = $state<string | null>(null);
 
 	let saving = $state(false);
 	let saveError = $state<string | null>(null);
+
+	function openDraft(
+		draft: ImportTabDraft,
+		sourceUrl: string | null,
+		existingSongId: string | null
+	) {
+		draftTitle = draft.title ?? '';
+		draftArtist = draft.artist ?? '';
+		draftOriginalKey = draft.original_key ?? '';
+		draftInstrument = 'cifra';
+		draftBlocks = draft.ast ?? [];
+		draftSourceUrl = sourceUrl;
+		draftExistingSongId = existingSongId;
+		mode = 'draft';
+	}
 
 	function processPaste() {
 		processError = null;
@@ -55,12 +92,92 @@
 			return;
 		}
 
-		draftBlocks = parseChordSheet(pasteText);
-		draftTitle = '';
-		draftArtist = '';
-		draftOriginalKey = '';
-		draftInstrument = 'cifra';
-		mode = 'draft';
+		openDraft(
+			{ title: '', artist: '', original_key: null, ast: parseChordSheet(pasteText) },
+			null,
+			null
+		);
+	}
+
+	function focusPasteTextarea() {
+		pasteTextareaEl?.focus();
+	}
+
+	async function handleUrlImport() {
+		urlError = null;
+		dedupe = null;
+
+		const trimmedUrl = urlValue.trim();
+		if (!trimmedUrl) {
+			urlError = 'Informe a URL da música.';
+			return;
+		}
+		if (!$currentBand) return;
+
+		urlLoading = true;
+
+		const { data: fnData, error: fnError } = await data.supabase.functions.invoke('import-tab', {
+			body: { url: trimmedUrl }
+		});
+
+		if (fnError) {
+			urlLoading = false;
+			// Non-2xx responses land in `error`, not `data` — the structured
+			// { success:false, error:{code,message} } body is still readable
+			// from the raw Response the SDK attaches as `context`.
+			let message = 'Não foi possível importar desta URL.';
+			const context = (fnError as { context?: Response }).context;
+			if (context) {
+				try {
+					const body = (await context.json()) as { error?: { message?: string } };
+					if (body?.error?.message) message = body.error.message;
+				} catch {
+					// response wasn't JSON — keep the generic message
+				}
+			}
+			urlError = message;
+			return;
+		}
+
+		const payload = fnData as
+			{ success: true; data: ImportTabDraft } | { success: false; error: { message: string } };
+
+		if (!payload?.success) {
+			urlLoading = false;
+			urlError = payload?.error?.message ?? 'Não foi possível importar desta URL.';
+			return;
+		}
+
+		const { data: existing } = await data.supabase
+			.from('songs')
+			.select('id, title')
+			.eq('band_id', $currentBand.id)
+			.eq('source_url', trimmedUrl)
+			.maybeSingle();
+
+		urlLoading = false;
+
+		if (existing) {
+			dedupe = {
+				existingId: existing.id,
+				existingTitle: existing.title,
+				draft: payload.data,
+				sourceUrl: trimmedUrl
+			};
+			return;
+		}
+
+		openDraft(payload.data, trimmedUrl, null);
+	}
+
+	function confirmOverwrite() {
+		if (!dedupe) return;
+		openDraft(dedupe.draft, dedupe.sourceUrl, dedupe.existingId);
+		dedupe = null;
+	}
+
+	function cancelDedupe() {
+		dedupe = null;
 	}
 
 	function moveBlock(index: number, direction: -1 | 1) {
@@ -79,6 +196,8 @@
 	function backToPaste() {
 		mode = 'paste';
 		saveError = null;
+		draftSourceUrl = null;
+		draftExistingSongId = null;
 	}
 
 	async function handleSave() {
@@ -106,7 +225,9 @@
 			song_artist: draftArtist,
 			song_original_key: draftOriginalKey,
 			tab_instrument: draftInstrument,
-			tab_content: draftBlocks as unknown as Json
+			tab_content: draftBlocks as unknown as Json,
+			song_source_url: draftSourceUrl ?? undefined,
+			existing_song_id: draftExistingSongId ?? undefined
 		});
 
 		saving = false;
@@ -123,7 +244,12 @@
 	function importAnother() {
 		mode = 'paste';
 		pasteText = '';
+		urlValue = '';
+		urlError = null;
+		dedupe = null;
 		draftBlocks = [];
+		draftSourceUrl = null;
+		draftExistingSongId = null;
 		saveError = null;
 	}
 </script>
@@ -149,13 +275,69 @@
 			<p class="mt-6 rounded-lg bg-slate-800 p-4 text-sm text-slate-400">
 				Apenas administradores da banda podem importar músicas.
 			</p>
+		{:else if mode === 'paste' && dedupe}
+			<section class="mt-6 rounded-lg bg-slate-800 p-4">
+				<h2 class="text-sm font-medium text-slate-50">Música já importada</h2>
+				<p class="mt-1 text-sm text-slate-400">
+					Já existe uma música importada desta URL: "{dedupe.existingTitle}". Sobrescrever a tab
+					existente ou cancelar?
+				</p>
+				<div class="mt-3 flex gap-2">
+					<button
+						type="button"
+						onclick={cancelDedupe}
+						class="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-50"
+					>
+						Cancelar
+					</button>
+					<button
+						type="button"
+						onclick={confirmOverwrite}
+						class="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-slate-50"
+					>
+						Sobrescrever
+					</button>
+				</div>
+			</section>
 		{:else if mode === 'paste'}
+			<section class="mt-6 rounded-lg bg-slate-800 p-4">
+				<h2 class="text-sm font-medium text-slate-50">Importar por URL</h2>
+				<p class="mt-1 text-sm text-slate-400">Cole o link de uma música do CifraClub.</p>
+				<div class="mt-3 flex gap-2">
+					<input
+						type="url"
+						bind:value={urlValue}
+						placeholder="https://www.cifraclub.com.br/artista/musica/"
+						class="flex-1 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-50 outline-none focus:border-indigo-500"
+					/>
+					<button
+						type="button"
+						onclick={handleUrlImport}
+						disabled={urlLoading}
+						class="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-slate-50 disabled:opacity-60"
+					>
+						{urlLoading ? 'Importando...' : 'Importar por URL'}
+					</button>
+				</div>
+				{#if urlError}
+					<p class="mt-2 text-sm text-red-400" role="alert">{urlError}</p>
+					<button
+						type="button"
+						onclick={focusPasteTextarea}
+						class="mt-2 text-sm text-indigo-400 hover:text-indigo-300"
+					>
+						Colar cifra manualmente
+					</button>
+				{/if}
+			</section>
+
 			<section class="mt-6 rounded-lg bg-slate-800 p-4">
 				<h2 class="text-sm font-medium text-slate-50">Modo Avançado — colar cifra</h2>
 				<p class="mt-1 text-sm text-slate-400">
 					Cole o texto da cifra (com seções como "Refrão", "[Intro]" etc.) e clique em Processar.
 				</p>
 				<textarea
+					bind:this={pasteTextareaEl}
 					bind:value={pasteText}
 					rows="14"
 					placeholder="[Intro] Am  C  G
