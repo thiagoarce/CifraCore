@@ -1,0 +1,10 @@
+[Intro]
+G  D  Em  C
+
+Verso 1
+Uma letra qualquer de exemplo
+Para testar o bootstrapping local
+
+Refrão
+Este é só um exemplo de repertório
+Usado para validar o batch-import

@@ -14,7 +14,9 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
-		"gen": "wrangler types"
+		"gen": "wrangler types",
+		"batch-import": "node --experimental-strip-types batch-import.js",
+		"test:batch-import": "node --test batch-import.test.js"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",

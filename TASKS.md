@@ -23,7 +23,7 @@ Visão geral da ordem de construção, dependências entre features e delegaçã
 | Feature                  | Spec                              | Status          |
 | ------------------------ | --------------------------------- | --------------- |
 | 001 Fundação             | `specs/001-fundacao/`             | ✅ Concluída    |
-| 002 Importação           | `specs/002-importacao/`           | 🚧 Em andamento |
+| 002 Importação           | `specs/002-importacao/`           | ✅ Concluída    |
 | 003 Catálogo e UI        | `specs/003-catalogo-ui/`          | 📋 Especificada |
 | 004 Inteligência Musical | `specs/004-inteligencia-musical/` | 📋 Especificada |
 | 005 Setlists e Sincronia | `specs/005-setlists-sync/`        | 📋 Especificada |

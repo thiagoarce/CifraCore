@@ -1,0 +1,9 @@
+# Exemplo de repertório para batch-import.js (spec 002-importacao T5)
+# Formato: Título; Artista; URL-ou-arquivo.txt
+# Linhas em branco e comentários (como esta) são ignorados.
+
+Tempo Perdido; Legião Urbana; https://www.cifraclub.com.br/legiao-urbana/tempo-perdido/
+Faroeste Caboclo; Legião Urbana; https://www.cifraclub.com.br/legiao-urbana/faroeste-caboclo/
+
+# Entradas locais: o caminho é relativo a este arquivo de repertório.
+Música da Banda; Banda Própria; repertorio-exemplos/musica-da-banda.txt

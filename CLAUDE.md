@@ -54,10 +54,19 @@ npx supabase db reset  # aplica migrações do zero
 deno test --allow-read supabase/functions/   # testes (fetch mockado, nunca bate na rede)
 deno fmt supabase/functions/                 # formatação
 deno lint supabase/functions/                # lint
+
+# batch-import.js (spec 002-importacao T5) — não faz parte do app, é script de bootstrap:
+npm run batch-import -- <repertorio.txt> --band <band_id>   # requer SUPABASE_URL + SUPABASE_SERVICE_KEY no ambiente
+npm run test:batch-import                                    # testes do parser de linhas (node --test, sem stack Supabase)
 ```
 
 Notas do scaffold: não existe `svelte.config.js` — a configuração do SvelteKit (adapter, runes) vive no `vite.config.ts` (plugin `sveltekit()`); Tailwind v4 é configurado via CSS (`@theme` em `src/routes/layout.css`), sem `tailwind.config.js`. `supabase/functions/` está excluído do `.prettierignore`/`eslint.config.js` (Deno tem sua própria formatação/lint, incompatível com a config Prettier do resto do repo).
 
+## Notas de Ambiente (sandbox de desenvolvimento)
+
+- O Docker daemon deste sandbox pode cair entre sessões/comandos longos; se `npx supabase status` falhar com erro de conexão ao daemon, suba com `dockerd` em background (`nohup dockerd > /tmp/.../dockerd.log 2>&1 & disown`) antes de repetir o comando.
+- O container `edge-runtime` do Supabase **não inicia neste sandbox** (`error setting rlimit type 7: operation not permitted` — restrição de capacidades do ambiente, não um bug do projeto). `supabase start` roda com `-x edge-runtime`; qualquer Edge Function precisa ser verificada com a rede mockada (Playwright `page.route` no navegador, ou testes Deno com `fetch` stubado) em vez de invocação real via `functions.invoke`/`supabase functions serve`.
+
 ## Estado Atual
 
-Fase 1 (fundação) concluída — T1–T7 feitos (T8/T9 são follow-ups anotados no tasks.md da 001). Fase 2 (importação) em andamento: T1 (parser texto→AST) e T3 (Edge Function `import-tab`, estratégia CifraClub) feitos. Próximo passo: `specs/002-importacao/tasks.md` T2 (Tela do Modo Avançado + Rascunho).
+Fase 1 (fundação) concluída — T1–T7 feitos (T8/T9 são follow-ups anotados no tasks.md da 001). Fase 2 (importação) **concluída** — T1–T5 feitos. Próximo passo: escolher a próxima feature (`specs/003-catalogo-ui` é a sequência natural do roadmap) e ler seu spec/plan/tasks antes de codar.
