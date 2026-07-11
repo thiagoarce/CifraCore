@@ -15,16 +15,23 @@
 		errorMessage = null;
 		loading = true;
 
-		const { error } = await data.supabase.auth.signInWithPassword({ email, password });
+		try {
+			const { error } = await data.supabase.auth.signInWithPassword({ email, password });
 
-		if (error) {
-			errorMessage = mapAuthErrorMessage(error.message);
+			if (error) {
+				errorMessage = mapAuthErrorMessage(error.message);
+				return;
+			}
+
+			await invalidate('supabase:auth');
+			await goto(resolve('/dashboard'));
+		} catch {
+			// Network hiccup, redirect loop, etc: surface something instead of
+			// leaving the button stuck on "Entrando..." forever.
+			errorMessage = 'Ocorreu um erro. Tente novamente.';
+		} finally {
 			loading = false;
-			return;
 		}
-
-		await invalidate('supabase:auth');
-		goto(resolve('/dashboard'));
 	}
 </script>
 

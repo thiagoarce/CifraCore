@@ -58,8 +58,13 @@ const authGuard: Handle = async ({ event, resolve }) => {
 
 	const routeId = event.route.id ?? '';
 
-	if (routeId === '/') {
-		redirect(303, session ? '/dashboard' : '/login');
+	// Only the "already logged in" case redirects server-side. The
+	// unauthenticated case can't redirect here: a Supabase email-confirmation
+	// link lands on "/" with the session in a URL fragment (never sent to the
+	// server), so root's own +page.svelte has to render, let the browser
+	// client pick up the fragment client-side, and redirect from there.
+	if (routeId === '/' && session) {
+		redirect(303, '/dashboard');
 	}
 
 	if (!session && routeId.startsWith('/(app)')) {

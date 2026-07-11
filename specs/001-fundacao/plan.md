@@ -74,6 +74,10 @@ supabase/
 
 Nota (decisão T4): não há `$lib/supabase.ts` singleton — o padrão `@supabase/ssr` cria um client **por request** no servidor (`hooks.server.ts`) e um client de browser no `+layout.ts` raiz, exposto às páginas via `data.supabase`. Um singleton compartilharia cookies entre requests no servidor (bug de segurança clássico).
 
+Nota (bug de produção, confirmação de e-mail): o padrão oficial Supabase+SvelteKit para link de confirmação é uma rota própria `/auth/confirm?token_hash=...&type=...` que chama `verifyOtp()` no servidor — mas isso exige customizar o template do e-mail de confirmação (`{{ .TokenHash }}`), e o **template de e-mail não é editável no plano free do Supabase com o provedor de e-mail padrão** (`PATCH /config/auth` retorna 403 explicando isso). Por isso o app usa o link padrão não-customizável (`{{ .ConfirmationURL }}`, que aponta pro `/auth/v1/verify` hospedado do próprio Supabase e redireciona com os tokens no **fragmento** da URL, `#access_token=...` — nunca chega ao servidor). A raiz `/` foi desenhada para lidar com isso: sem sessão, renderiza normalmente e o client chama `getSession()` (que aguarda o client processar o fragmento) antes de decidir para onde ir, em vez de redirecionar cegamente no servidor. Se um dia configurarmos SMTP customizado, o padrão `/auth/confirm` + template customizado é a evolução natural (mais robusto, sem depender de fragmento de URL).
+
+Nota (gap conhecido, recuperação de senha): `(auth)/reset` só cobre o "enviar e-mail de recuperação"; não há UI para a etapa seguinte (definir nova senha depois de clicar no link, que estabelece uma sessão de `type=recovery`). `uri_allow_list` do projeto hospedado já permite o redirect, mas falta a tela — não implementado ainda (fora do escopo do bug relatado; não é `[FABLE]` nem `[SONNET]` marcado em nenhum tasks.md ainda, precisa entrar como tarefa antes do lançamento real).
+
 ## Riscos Específicos
 
 - RLS mal escrita = vazamento entre bandas (pior bug possível do produto). Por isso toda a camada SQL é tarefa `[FABLE]` e exige testes de isolamento automatizados (dois usuários simulados) antes de qualquer feature seguinte.

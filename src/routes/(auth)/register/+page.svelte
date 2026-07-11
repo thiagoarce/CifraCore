@@ -23,24 +23,30 @@
 
 		loading = true;
 
-		const { data: signUpData, error } = await data.supabase.auth.signUp({ email, password });
+		try {
+			const { data: signUpData, error } = await data.supabase.auth.signUp({ email, password });
 
-		if (error) {
-			errorMessage = mapAuthErrorMessage(error.message);
+			if (error) {
+				errorMessage = mapAuthErrorMessage(error.message);
+				return;
+			}
+
+			if (signUpData.session) {
+				// E-mail confirmation disabled: Supabase already returns a session.
+				await invalidate('supabase:auth');
+				await goto(resolve('/dashboard'));
+				return;
+			}
+
+			// E-mail confirmation required before the user can sign in.
+			confirmationPending = true;
+		} catch {
+			// Network hiccup, redirect loop, etc: surface something instead of
+			// leaving the button stuck on "Criando conta..." forever.
+			errorMessage = 'Ocorreu um erro. Tente novamente.';
+		} finally {
 			loading = false;
-			return;
 		}
-
-		if (signUpData.session) {
-			// E-mail confirmation disabled: Supabase already returns a session.
-			await invalidate('supabase:auth');
-			goto(resolve('/dashboard'));
-			return;
-		}
-
-		// E-mail confirmation required before the user can sign in.
-		confirmationPending = true;
-		loading = false;
 	}
 </script>
 
