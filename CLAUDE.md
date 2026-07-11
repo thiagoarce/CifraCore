@@ -66,6 +66,17 @@ Notas do scaffold: não existe `svelte.config.js` — a configuração do Svelte
 
 - O Docker daemon deste sandbox pode cair entre sessões/comandos longos; se `npx supabase status` falhar com erro de conexão ao daemon, suba com `dockerd` em background (`nohup dockerd > /tmp/.../dockerd.log 2>&1 & disown`) antes de repetir o comando.
 - O container `edge-runtime` do Supabase **não inicia neste sandbox** (`error setting rlimit type 7: operation not permitted` — restrição de capacidades do ambiente, não um bug do projeto). `supabase start` roda com `-x edge-runtime`; qualquer Edge Function precisa ser verificada com a rede mockada (Playwright `page.route` no navegador, ou testes Deno com `fetch` stubado) em vez de invocação real via `functions.invoke`/`supabase functions serve`.
+- A CLI do Supabase (binário Go) **não respeita o proxy de saída HTTPS deste sandbox** — `supabase link`/`db push`/`functions deploy` falham com erro de transporte. `wrangler` (Node) respeita o proxy normalmente. Workaround: operações de rede do Supabase neste sandbox usam a **Management API** direto via `curl`/Node `fetch` (`https://api.supabase.com/v1/...`, header `Authorization: Bearer <SUPABASE_ACCESS_TOKEN>`) em vez da CLI — `database/query` para SQL (migrations), `functions/deploy` (multipart) para Edge Functions.
+
+## Produção
+
+Ambiente hospedado real, para testar o app fora do stack local:
+
+- **Supabase:** projeto `cifracore-prod` (org `CifraCore`, ref `kabssynliihfggmnsclu`, região `sa-east-1`). As 4 migrations de `supabase/migrations/` foram aplicadas via Management API (histórico registrado manualmente em `supabase_migrations.schema_migrations`, já que a CLI não linka neste sandbox — ver nota acima). Edge Function `import-tab` implantada e verificada com uma URL real do CifraClub (roda em edge-runtime de verdade, sem a limitação do sandbox local).
+- **Cloudflare Pages:** projeto `cifracore`, branch de produção `main`, live em `https://cifracore.pages.dev`. Deploy feito com `npx wrangler pages deploy .svelte-kit/cloudflare --project-name cifracore --branch main` (variáveis `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` no ambiente).
+- **Build de produção:** `PUBLIC_SUPABASE_URL`/`PUBLIC_SUPABASE_ANON_KEY` são lidas de `$env/static/public` — **baked at build time**, não em runtime. Para rebuildar apontando pro projeto hospedado: sobrescrever `.env` temporariamente com a URL/anon key do projeto (`https://kabssynliihfggmnsclu.supabase.co` + anon key do dashboard do projeto), rodar `npm run build`, fazer o deploy, e depois restaurar o `.env` local (aponta pro stack local por padrão — não versionado, está no `.gitignore`).
+- **Segredos:** nenhum token (Supabase access token, Cloudflare API token, service key) fica neste repositório. Quem for redeployar precisa gerar os próprios tokens (Supabase: `dashboard.supabase.com/account/tokens`; Cloudflare: `dash.cloudflare.com/profile/api-tokens`) — não há automação de deploy contínuo configurada ainda (sem CI/CD; deploy é manual).
+- Fluxo de ponta a ponta (signup → criar banda → `import_song`) foi verificado direto contra o Postgres hospedado com um usuário/banda de teste, depois removidos.
 
 ## Estado Atual
 
