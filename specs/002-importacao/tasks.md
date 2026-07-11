@@ -2,8 +2,9 @@
 
 Depende de: 001 (schema, auth). Ordem de cima para baixo.
 
-- [ ] **T1 `[FABLE]` Parser texto→AST** — `$lib/utils/chordSheetParser.ts` + suíte de testes (Lei 2: testes primeiro). Casos: seções rotuladas PT/EN, repetições (`2x`, `(bis)`), linhas de acorde vs. letra, texto sem estrutura, texto vazio, caracteres especiais.
+- [x] **T1 `[FABLE]` Parser texto→AST** — `$lib/utils/chordSheetParser.ts` + suíte de testes (Lei 2: testes primeiro). Casos: seções rotuladas PT/EN, repetições (`2x`, `(bis)`), linhas de acorde vs. letra, texto sem estrutura, texto vazio, caracteres especiais.
       **DoD:** 100% dos casos passam; nunca lança exceção; texto de entrada sempre recuperável por concatenação dos blocos.
+      _Feito. 14 testes em `chordSheetParser.spec.ts` (escritos antes da implementação). Dois modos: blocos rotulados (`buildLabeledBlocks`, com bloco sintético "Parte 1" para conteúdo antes do primeiro rótulo) e fallback por parágrafo quando nenhum rótulo é reconhecido (`buildParagraphBlocks`, split em linhas em branco duplas). Rótulos reconhecidos: colchetes `[X]` (com conteúdo inline após), parênteses `(X)`, dois-pontos `X:`, ou linha inteira `X`; regex ancorada evita falso positivo em letras que começam com a palavra-chave (ex: "Solo na madrugada..."). Repetições: `2x`, `x2`, `(2x)`, `(bis)`. Nunca lança exceção; texto sem estrutura vira bloco único verbatim._
 
 - [ ] **T2 `[SONNET]` Tela do Modo Avançado + Rascunho** — rota `/import`: textarea → chama `parseChordSheet` → Tela de Rascunho (editar title/artist/key/blocos, reordenar, remover) → "Aprovar e Gravar" insere `songs` + `song_tabs`. Seguir contrato `ASTBlock` do `PLAN.md` §4 à risca.
       **DoD:** cenários Gherkin "Colar texto vira AST" e "Validação humana" (parte do Rascunho) passam manualmente; gravação cria as duas linhas corretamente.
