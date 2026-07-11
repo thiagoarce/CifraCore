@@ -4,6 +4,17 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<script>
+			// Dark is the default paint (no class needed), so this only ever
+			// has to act for users who opted into light — avoids a dark->light
+			// flash for them. Runs before paint; theme store (src/lib/stores/theme.ts)
+			// takes over from here on.
+			try {
+				if (localStorage.getItem('cifracore:theme') === 'light') {
+					document.documentElement.classList.add('light');
+				}
+			} catch {}
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

@@ -1,1 +1,34 @@
 @import 'tailwindcss';
+
+/*
+ * Semantic tokens (spec 003 §Design System). Dark is the default palette
+ * (:root, no class needed — R1: stage environment) with a `.light` class
+ * override for the opt-in daytime theme. Components use these tokens
+ * (bg-surface, text-content, ...) instead of raw Tailwind color utilities,
+ * so no hex value lives outside this file.
+ */
+@theme {
+	--color-surface: #0f172a; /* app background */
+	--color-surface-raised: #1e293b; /* cards, menus, containers */
+	--color-content: #f8fafc; /* primary text (lyrics) */
+	--color-content-muted: #94a3b8; /* secondary text (UI/menus) */
+	--color-voice-inactive: #64748b; /* dimmed duet voice */
+	--color-chord: #fbbf24; /* chord highlight / active voice */
+	--color-accent: #6366f1; /* primary buttons/accents */
+	--color-accent-content: #ffffff; /* text on top of accent */
+	--color-border: #334155; /* dividers, input borders */
+	--color-danger: #f87171; /* destructive actions/errors */
+}
+
+:root.light {
+	--color-surface: #f8fafc;
+	--color-surface-raised: #ffffff;
+	--color-content: #0f172a;
+	--color-content-muted: #64748b;
+	--color-voice-inactive: #94a3b8;
+	--color-chord: #2563eb;
+	--color-accent: #4f46e5;
+	--color-accent-content: #ffffff;
+	--color-border: #e2e8f0;
+	--color-danger: #dc2626;
+}

@@ -13,3 +13,6 @@ worker-configuration.d.ts
 
 # Deno runtime (Supabase Edge Functions) - formatted/linted by `deno fmt`/`deno lint`, not Prettier/ESLint
 supabase/functions/
+
+# Vendored skill (third-party content, kept verbatim)
+.claude/skills/

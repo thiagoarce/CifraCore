@@ -1,123 +1,86 @@
 <script lang="ts">
-	import { goto, invalidate } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { mapAuthErrorMessage } from '../shared';
+	import type { ActionData } from './$types';
 
-	let { data } = $props();
+	let { form }: { form: ActionData } = $props();
 
-	let email = $state('');
-	let password = $state('');
-	let confirmPassword = $state('');
 	let loading = $state(false);
-	let errorMessage = $state<string | null>(null);
-	let confirmationPending = $state(false);
-
-	async function handleSubmit(event: SubmitEvent) {
-		event.preventDefault();
-		errorMessage = null;
-
-		if (password !== confirmPassword) {
-			errorMessage = 'As senhas não coincidem.';
-			return;
-		}
-
-		loading = true;
-
-		try {
-			const { data: signUpData, error } = await data.supabase.auth.signUp({ email, password });
-
-			if (error) {
-				errorMessage = mapAuthErrorMessage(error.message);
-				return;
-			}
-
-			if (signUpData.session) {
-				// E-mail confirmation disabled: Supabase already returns a session.
-				await invalidate('supabase:auth');
-				await goto(resolve('/dashboard'));
-				return;
-			}
-
-			// E-mail confirmation required before the user can sign in.
-			confirmationPending = true;
-		} catch {
-			// Network hiccup, redirect loop, etc: surface something instead of
-			// leaving the button stuck on "Criando conta..." forever.
-			errorMessage = 'Ocorreu um erro. Tente novamente.';
-		} finally {
-			loading = false;
-		}
-	}
 </script>
 
-<h1 class="text-xl font-semibold text-slate-50">Criar conta</h1>
-<p class="mt-1 text-sm text-slate-400">Cadastre-se para criar ou entrar numa banda.</p>
+<h1 class="text-xl font-semibold text-content">Criar conta</h1>
+<p class="mt-1 text-sm text-content-muted">Cadastre-se para criar ou entrar numa banda.</p>
 
-{#if confirmationPending}
-	<p class="mt-6 text-sm text-slate-50">
+{#if form?.confirmationPending}
+	<p class="mt-6 text-sm text-content">
 		Cadastro realizado! Verifique seu e-mail para confirmar a conta antes de entrar.
 	</p>
-	<a
-		href={resolve('/login')}
-		class="mt-4 inline-block text-sm text-indigo-400 hover:text-indigo-300"
-	>
+	<a href={resolve('/login')} class="mt-4 inline-block text-sm text-accent hover:opacity-80">
 		Voltar para o login
 	</a>
 {:else}
-	<form class="mt-6 flex flex-col gap-4" onsubmit={handleSubmit}>
+	<form
+		method="POST"
+		class="mt-6 flex flex-col gap-4"
+		use:enhance={() => {
+			loading = true;
+			return async ({ update }) => {
+				await update();
+				loading = false;
+			};
+		}}
+	>
 		<label class="flex flex-col gap-1">
-			<span class="text-sm text-slate-400">E-mail</span>
+			<span class="text-sm text-content-muted">E-mail</span>
 			<input
 				type="email"
 				name="email"
 				autocomplete="email"
 				required
-				bind:value={email}
-				class="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-50 outline-none focus:border-indigo-500"
+				value={form?.email ?? ''}
+				class="h-11 rounded-md border border-border bg-surface px-3 text-content outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent"
 			/>
 		</label>
 
 		<label class="flex flex-col gap-1">
-			<span class="text-sm text-slate-400">Senha</span>
+			<span class="text-sm text-content-muted">Senha</span>
 			<input
 				type="password"
 				name="password"
 				autocomplete="new-password"
 				minlength="6"
 				required
-				bind:value={password}
-				class="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-50 outline-none focus:border-indigo-500"
+				class="h-11 rounded-md border border-border bg-surface px-3 text-content outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent"
 			/>
 		</label>
 
 		<label class="flex flex-col gap-1">
-			<span class="text-sm text-slate-400">Confirmar senha</span>
+			<span class="text-sm text-content-muted">Confirmar senha</span>
 			<input
 				type="password"
 				name="confirmPassword"
 				autocomplete="new-password"
 				minlength="6"
 				required
-				bind:value={confirmPassword}
-				class="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-50 outline-none focus:border-indigo-500"
+				class="h-11 rounded-md border border-border bg-surface px-3 text-content outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent"
 			/>
 		</label>
 
-		{#if errorMessage}
-			<p class="text-sm text-red-400" role="alert">{errorMessage}</p>
+		{#if form?.error}
+			<p class="text-sm text-danger" role="alert">{form.error}</p>
 		{/if}
 
 		<button
 			type="submit"
 			disabled={loading}
-			class="mt-2 rounded-md bg-indigo-500 px-4 py-2 font-medium text-slate-50 disabled:opacity-60"
+			class="mt-2 h-11 cursor-pointer rounded-md bg-accent px-4 font-medium text-accent-content transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
 		>
 			{loading ? 'Criando conta...' : 'Criar conta'}
 		</button>
 	</form>
 
-	<p class="mt-6 text-sm text-slate-400">
+	<p class="mt-6 text-sm text-content-muted">
 		Já tem conta?
-		<a href={resolve('/login')} class="text-indigo-400 hover:text-indigo-300">Entrar</a>
+		<a href={resolve('/login')} class="text-accent hover:opacity-80">Entrar</a>
 	</p>
 {/if}
