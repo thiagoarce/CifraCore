@@ -1,8 +1,10 @@
 <script lang="ts">
-	import { goto, invalidate } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import type { ActionData, PageData } from './$types';
 
-	let { data } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let inviteEmail = $state('');
 	let inviting = $state(false);
@@ -10,7 +12,6 @@
 	let inviteSuccess = $state<string | null>(null);
 
 	let leaving = $state(false);
-	let leaveError = $state<string | null>(null);
 
 	function mapInviteError(message: string): string {
 		const raw = message.toLowerCase();
@@ -45,45 +46,24 @@
 		inviteEmail = '';
 		await invalidate('app:band-members');
 	}
-
-	async function handleLeave() {
-		leaveError = null;
-		leaving = true;
-
-		const { error } = await data.supabase
-			.from('band_members')
-			.delete()
-			.eq('band_id', data.band.id)
-			.eq('user_id', data.user!.id);
-
-		leaving = false;
-
-		if (error) {
-			leaveError = 'Não foi possível sair da banda.';
-			return;
-		}
-
-		await invalidate('app:bands');
-		goto(resolve('/bands'));
-	}
 </script>
 
-<main class="min-h-screen bg-slate-900 p-6 text-slate-50">
+<main class="min-h-screen bg-surface p-6 text-content">
 	<div class="mx-auto max-w-2xl">
-		<a href={resolve('/bands')} class="text-sm text-slate-400 hover:text-slate-50">
+		<a href={resolve('/bands')} class="text-sm text-content-muted hover:text-content">
 			&larr; Minhas Bandas
 		</a>
 
 		<h1 class="mt-4 text-xl font-semibold">{data.band.name}</h1>
 
-		<section class="mt-6 rounded-lg bg-slate-800 p-4">
-			<h2 class="text-sm font-medium text-slate-50">Membros</h2>
+		<section class="mt-6 rounded-lg bg-surface-raised p-4">
+			<h2 class="text-sm font-medium text-content">Membros</h2>
 			<ul class="mt-3 flex flex-col gap-2">
 				{#each data.members as member (member.id)}
-					<li class="flex items-center justify-between rounded-md bg-slate-900 px-3 py-2 text-sm">
+					<li class="flex items-center justify-between rounded-md bg-surface px-3 py-2 text-sm">
 						<span>
 							{member.userId === data.user?.id ? 'Você' : member.userId}
-							<span class="text-slate-400">
+							<span class="text-content-muted">
 								· {member.role === 'admin' ? 'Admin' : 'Membro'}
 								{#if member.instrument}
 									· {member.instrument}
@@ -96,8 +76,8 @@
 		</section>
 
 		{#if data.isAdmin}
-			<section class="mt-6 rounded-lg bg-slate-800 p-4">
-				<h2 class="text-sm font-medium text-slate-50">Convidar membro</h2>
+			<section class="mt-6 rounded-lg bg-surface-raised p-4">
+				<h2 class="text-sm font-medium text-content">Convidar membro</h2>
 				<form class="mt-3 flex gap-2" onsubmit={handleInvite}>
 					<input
 						type="email"
@@ -105,36 +85,47 @@
 						required
 						placeholder="E-mail do músico"
 						bind:value={inviteEmail}
-						class="flex-1 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-50 outline-none focus:border-indigo-500"
+						class="h-11 flex-1 rounded-md border border-border bg-surface px-3 text-content outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent"
 					/>
 					<button
 						type="submit"
 						disabled={inviting}
-						class="rounded-md bg-indigo-500 px-4 py-2 text-sm font-medium text-slate-50 disabled:opacity-60"
+						class="h-11 cursor-pointer rounded-md bg-accent px-4 text-sm font-medium text-accent-content transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
 					>
 						{inviting ? 'Convidando...' : 'Convidar'}
 					</button>
 				</form>
 				{#if inviteError}
-					<p class="mt-2 text-sm text-red-400" role="alert">{inviteError}</p>
+					<p class="mt-2 text-sm text-danger" role="alert">{inviteError}</p>
 				{/if}
 				{#if inviteSuccess}
-					<p class="mt-2 text-sm text-slate-400">{inviteSuccess}</p>
+					<p class="mt-2 text-sm text-content-muted">{inviteSuccess}</p>
 				{/if}
 			</section>
 		{/if}
 
 		<section class="mt-6">
-			<button
-				type="button"
-				onclick={handleLeave}
-				disabled={leaving}
-				class="rounded-md border border-slate-700 px-4 py-2 text-sm text-slate-50 hover:border-red-400 disabled:opacity-60"
+			<form
+				method="POST"
+				action="?/leave"
+				use:enhance={() => {
+					leaving = true;
+					return async ({ update }) => {
+						await update();
+						leaving = false;
+					};
+				}}
 			>
-				{leaving ? 'Saindo...' : 'Sair da banda'}
-			</button>
-			{#if leaveError}
-				<p class="mt-2 text-sm text-red-400" role="alert">{leaveError}</p>
+				<button
+					type="submit"
+					disabled={leaving}
+					class="h-11 cursor-pointer rounded-md border border-border px-4 text-sm text-content hover:border-danger disabled:cursor-not-allowed disabled:opacity-60"
+				>
+					{leaving ? 'Saindo...' : 'Sair da banda'}
+				</button>
+			</form>
+			{#if form?.leaveError}
+				<p class="mt-2 text-sm text-danger" role="alert">{form.leaveError}</p>
 			{/if}
 		</section>
 	</div>

@@ -1,77 +1,127 @@
 <script lang="ts">
-	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { currentBand } from '$lib/stores/currentBand';
+	import Button from '$lib/components/ui/Button.svelte';
 
 	let { data } = $props();
 
-	let loggingOut = $state(false);
-
-	async function handleLogout() {
-		loggingOut = true;
-		await data.supabase.auth.signOut();
-		currentBand.clear();
-		await invalidate('supabase:auth');
-		goto(resolve('/login'));
+	interface SongRow {
+		id: string;
+		title: string;
+		artist: string | null;
+		original_key: string | null;
 	}
 
-	function selectBand(band: { id: string; name: string }) {
-		currentBand.select({ id: band.id, name: band.name });
-	}
+	let songs = $state<SongRow[]>([]);
+	let loading = $state(false);
+	let loadError = $state<string | null>(null);
+	let query = $state('');
+
+	// The active band lives only in localStorage ($currentBand), so this
+	// can't be a +page.server.ts load — the server never sees which band is
+	// selected (no cookie/URL param encodes it). Same pattern as
+	// (app)/import/+page.svelte's dedupe lookup.
+	$effect(() => {
+		const band = $currentBand;
+		if (!band) {
+			songs = [];
+			return;
+		}
+
+		loading = true;
+		loadError = null;
+
+		data.supabase
+			.from('songs')
+			.select('id, title, artist, original_key')
+			.eq('band_id', band.id)
+			.order('title')
+			.then(({ data: rows, error }) => {
+				loading = false;
+				if (error) {
+					loadError = 'Não foi possível carregar o repertório.';
+					return;
+				}
+				songs = rows ?? [];
+			});
+	});
+
+	const filteredSongs = $derived(
+		query.trim() === ''
+			? songs
+			: songs.filter((song) => {
+					const haystack = `${song.title} ${song.artist ?? ''}`.toLowerCase();
+					return haystack.includes(query.trim().toLowerCase());
+				})
+	);
 </script>
 
-<main class="min-h-screen bg-slate-900 p-6 text-slate-50">
-	<div class="mx-auto max-w-2xl">
-		<div class="flex items-start justify-between">
-			<div>
-				<h1 class="text-xl font-semibold">Olá, {data.user?.email}</h1>
-				{#if $currentBand}
-					<p class="mt-1 text-sm text-slate-400">Banda ativa: {$currentBand.name}</p>
-				{/if}
-			</div>
-			<button
-				type="button"
-				onclick={handleLogout}
-				disabled={loggingOut}
-				class="rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-50 hover:border-red-400 disabled:opacity-60"
+<div class="mx-auto max-w-3xl p-6">
+	<div class="flex flex-wrap items-center justify-between gap-4">
+		<div>
+			<h1 class="text-xl font-semibold text-content">Repertório</h1>
+			{#if $currentBand}
+				<p class="mt-1 text-sm text-content-muted">{$currentBand.name}</p>
+			{/if}
+		</div>
+		<a href={resolve('/import')}>
+			<Button variant="primary">+ Importar música</Button>
+		</a>
+	</div>
+
+	{#if !$currentBand}
+		<p class="mt-8 text-sm text-content-muted">
+			Você ainda não tem uma banda ativa.
+			<a href={resolve('/bands')} class="text-accent hover:opacity-80"
+				>Criar ou escolher uma banda</a
 			>
-				{loggingOut ? 'Saindo...' : 'Sair'}
-			</button>
+		</p>
+	{:else}
+		<div class="mt-6">
+			<label class="sr-only" for="song-search">Buscar por título ou artista</label>
+			<input
+				id="song-search"
+				type="search"
+				placeholder="Buscar por título ou artista..."
+				bind:value={query}
+				class="h-11 w-full rounded-md border border-border bg-surface-raised px-3 text-content outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent"
+			/>
 		</div>
 
-		<section class="mt-8 rounded-lg bg-slate-800 p-4">
-			<div class="flex items-center justify-between">
-				<h2 class="text-sm font-medium text-slate-50">Minhas bandas</h2>
-				<a href={resolve('/bands')} class="text-sm text-indigo-400 hover:text-indigo-300"
-					>Gerenciar</a
-				>
-			</div>
-
-			{#if data.bands.length === 0}
-				<p class="mt-3 text-sm text-slate-400">
-					Você ainda não é membro de nenhuma banda.
-					<a href={resolve('/bands')} class="text-indigo-400 hover:text-indigo-300"
-						>Criar uma banda</a
-					>
+		<div class="mt-4">
+			{#if loading}
+				<p class="text-sm text-content-muted">Carregando...</p>
+			{:else if loadError}
+				<p class="text-sm text-danger" role="alert">{loadError}</p>
+			{:else if songs.length === 0}
+				<p class="text-sm text-content-muted">
+					Nenhuma música no repertório ainda.
+					<a href={resolve('/import')} class="text-accent hover:opacity-80">Importar a primeira</a>
 				</p>
+			{:else if filteredSongs.length === 0}
+				<p class="text-sm text-content-muted">Nenhuma música encontrada para "{query}".</p>
 			{:else}
-				<ul class="mt-3 flex flex-col gap-2">
-					{#each data.bands as band (band.id)}
+				<ul class="flex flex-col gap-2">
+					{#each filteredSongs as song (song.id)}
 						<li>
-							<button
-								type="button"
-								onclick={() => selectBand(band)}
-								class="flex w-full items-center justify-between rounded-md bg-slate-900 px-3 py-2 text-left text-sm"
-								class:ring-2={$currentBand?.id === band.id}
-								class:ring-indigo-500={$currentBand?.id === band.id}
+							<a
+								href={resolve(`/songs/${song.id}`)}
+								class="flex items-center justify-between rounded-lg bg-surface-raised px-4 py-3 hover:bg-surface-raised/70"
 							>
-								<span>{band.name}</span>
-								<span class="text-slate-400">{band.role === 'admin' ? 'Admin' : 'Membro'}</span>
-							</button>
+								<div class="min-w-0">
+									<p class="truncate font-medium text-content">{song.title}</p>
+									{#if song.artist}
+										<p class="truncate text-sm text-content-muted">{song.artist}</p>
+									{/if}
+								</div>
+								{#if song.original_key}
+									<span class="ml-3 shrink-0 text-sm text-content-muted">{song.original_key}</span>
+								{/if}
+							</a>
 						</li>
 					{/each}
 				</ul>
 			{/if}
-		</section>
-	</div>
-</main>
+		</div>
+	{/if}
+</div>
