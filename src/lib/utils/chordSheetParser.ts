@@ -18,7 +18,22 @@ const KEYWORD_TYPE: Record<string, BlockType> = {
 	solo: 'solo',
 	final: 'outro',
 	outro: 'outro',
-	parte: 'verse'
+	parte: 'verse',
+	// CifraClub's most common section label for plain verses (verified
+	// against a live page while building the import-tab Edge Function,
+	// spec 002-importacao/002-T3): "Primeira Parte", "Segunda Parte", etc.
+	'primeira parte': 'verse',
+	'segunda parte': 'verse',
+	'terceira parte': 'verse',
+	'quarta parte': 'verse',
+	'quinta parte': 'verse',
+	'sexta parte': 'verse',
+	'sétima parte': 'verse',
+	'setima parte': 'verse',
+	'oitava parte': 'verse',
+	'nona parte': 'verse',
+	'décima parte': 'verse',
+	'decima parte': 'verse'
 };
 
 /**
@@ -28,7 +43,7 @@ const KEYWORD_TYPE: Record<string, BlockType> = {
  * match instead of being misread as a label.
  */
 const LABEL_PATTERN =
-	/^(?<keyword>intro|verso|verse|refr[ãa]o|chorus|ponte|bridge|solo|final|outro|parte)\s*(?<section>\d+)?\s*(?:\(\s*(?<repeatParen>\d+)\s*x\s*\)|\(\s*(?<bis>bis)\s*\)|(?<repeatBare>\d+)\s*x|x\s*(?<repeatX>\d+))?\s*$/i;
+	/^(?<keyword>intro|verso|verse|refr[ãa]o|chorus|ponte|bridge|solo|final|outro|(?:primeira|segunda|terceira|quarta|quinta|sexta|s[ée]tima|oitava|nona|d[ée]cima)\s+parte|parte)\s*(?<section>\d+)?\s*(?:\(\s*(?<repeatParen>\d+)\s*x\s*\)|\(\s*(?<bis>bis)\s*\)|(?<repeatBare>\d+)\s*x|x\s*(?<repeatX>\d+))?\s*$/i;
 
 interface LabelGroups {
 	keyword: string;

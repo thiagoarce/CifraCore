@@ -3,15 +3,28 @@
 ## Decisões Técnicas
 
 - **Um parser, três entradas.** `parseChordSheet` vive em `$lib/utils/chordSheetParser.ts` (função pura, testável). A Edge Function reimplementa apenas a _extração_ do HTML (título, artista, tom, texto bruto) e reutiliza a mesma lógica de blocos — o código do parser é compartilhado via cópia controlada em `supabase/functions/_shared/` (Deno não importa de `$lib`; manter os dois sincronizados é responsabilidade da tarefa, com o mesmo arquivo de casos de teste).
-- **Strategy Pattern na Edge Function:**
+- **Strategy Pattern na Edge Function** (`_shared/` no nível de `supabase/functions/`, não dentro de `import-tab/`, pois é o local convencional para código compartilhado entre múltiplas Edge Functions):
 
 ```
-supabase/functions/import-tab/
-├── index.ts            # roteia por domínio da URL
-├── strategies/
-│   └── cifraclub.ts    # extração específica
-└── _shared/parser.ts
+supabase/functions/
+├── _shared/
+│   ├── ast.ts            # cópia controlada de $lib/types/ast.ts
+│   ├── parser.ts         # cópia controlada de $lib/utils/chordSheetParser.ts
+│   └── parser.test.ts    # mesmos casos de teste do .spec.ts, portados para Deno.test
+└── import-tab/
+    ├── index.ts                    # roteia por domínio da URL, chama estratégia + parser, monta resposta
+    ├── index.test.ts               # validação/roteamento/erros (fetch mockado, sem rede)
+    └── strategies/
+        ├── cifraclub.ts             # extração específica (dependency-free, regex sobre HTML)
+        ├── cifraclub.test.ts        # teste de contrato via fixture
+        └── __fixtures__/
+            └── cifraclub-sample.html  # fixture SINTÉTICA (estrutura real, letra inventada — ver nota abaixo)
 ```
+
+- **Toolchain Deno:** `supabase/functions/` roda em Deno, não no toolchain Node/Prettier/ESLint do resto do repo — formatação e lint via `deno fmt` / `deno lint`, testes via `deno test --allow-read` (a suíte de `index.test.ts` mocka `globalThis.fetch`, nunca bate na rede). O diretório está excluído do `.prettierignore`/`eslint.config.js`. Comandos registrados no `CLAUDE.md`.
+- **Fixture sintética, não a página real:** durante a implementação, uma página real do CifraClub foi buscada para entender a estrutura exata do HTML (tags/classes: `h1.t1`, link de artista `/{slug}/`, `#cifra_tom`, `<pre>` com acordes em `<b>` e diagramas de tablatura em `<span class="tablatura">`). A fixture versionada reproduz essa estrutura fielmente, mas com título/artista/letra **inventados** — página real contém letra protegida por direitos autorais, e o risco R5 já trata conteúdo importado como uso privado, não para ser versionado no repositório.
+- **Reconhecimento de "Nth Parte":** ao validar contra uma página real, descobriu-se que o padrão de rótulo mais comum do CifraClub para versos é "Primeira Parte", "Segunda Parte", "Terceira Parte" etc. (ordinal + "Parte"), não "Parte N" como o heurístico original previa. O `LABEL_PATTERN` foi estendido (nas duas cópias, `$lib/utils/chordSheetParser.ts` e `supabase/functions/_shared/parser.ts`, com o mesmo caso de teste em ambas as suítes) para reconhecer ordinais de "primeira" a "décima" antes de "parte", mapeando para `type: 'verse'`. Sem isso, praticamente uma música inteira colapsava num único bloco.
+- **Defesa contra comentários HTML:** `extractCifraClub` remove `<!-- ... -->` antes de qualquer regex de tag (`stripComments`), para não confundir texto dentro de comentários com marcação real — achado durante o desenvolvimento (a própria fixture, antes de ajustada, continha a palavra `<pre>` dentro do comentário explicativo e foi capturada por engano).
 
 - **Heurística do parser (v1):**
   - Linha-rótulo de seção: regex sobre prefixos conhecidos (`intro`, `verso`, `refrão`, `chorus`, `ponte`, `bridge`, `solo`, `final`, `outro`, `parte N`) com ou sem colchetes/dois-pontos.

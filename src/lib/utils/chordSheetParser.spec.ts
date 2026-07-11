@@ -188,6 +188,24 @@ describe('parseChordSheet', () => {
 		}
 	});
 
+	it('recognizes CifraClub-style ordinal "Primeira/Segunda Parte" labels', () => {
+		const text = [
+			'[Primeira Parte]',
+			'verso um',
+			'',
+			'[Segunda Parte]',
+			'verso dois',
+			'',
+			'[Décima Parte]',
+			'verso dez'
+		].join('\n');
+
+		const blocks = parseChordSheet(text);
+
+		expect(blocks.map((b) => b.type)).toEqual(['verse', 'verse', 'verse']);
+		expect(blocks.map((b) => b.label)).toEqual(['Primeira Parte', 'Segunda Parte', 'Décima Parte']);
+	});
+
 	it('handles Windows line endings and special characters without crashing', () => {
 		const text = 'Refrão (2x)\r\nCoração ♥ açúcar & <tags>\r\n\r\n\r\nParte 2\r\nlinha';
 

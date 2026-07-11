@@ -49,10 +49,15 @@ npm run format     # Prettier --write
 npm run check      # svelte-check
 npx supabase start     # stack local (Docker)
 npx supabase db reset  # aplica migrações do zero
+
+# supabase/functions/ roda em Deno — toolchain própria, fora do npm run lint/test acima:
+deno test --allow-read supabase/functions/   # testes (fetch mockado, nunca bate na rede)
+deno fmt supabase/functions/                 # formatação
+deno lint supabase/functions/                # lint
 ```
 
-Notas do scaffold: não existe `svelte.config.js` — a configuração do SvelteKit (adapter, runes) vive no `vite.config.ts` (plugin `sveltekit()`); Tailwind v4 é configurado via CSS (`@theme` em `src/routes/layout.css`), sem `tailwind.config.js`.
+Notas do scaffold: não existe `svelte.config.js` — a configuração do SvelteKit (adapter, runes) vive no `vite.config.ts` (plugin `sveltekit()`); Tailwind v4 é configurado via CSS (`@theme` em `src/routes/layout.css`), sem `tailwind.config.js`. `supabase/functions/` está excluído do `.prettierignore`/`eslint.config.js` (Deno tem sua própria formatação/lint, incompatível com a config Prettier do resto do repo).
 
 ## Estado Atual
 
-Fase 1 (fundação) concluída — T1–T7 feitos (T8/T9 são follow-ups anotados no tasks.md da 001). Próximo passo: `specs/002-importacao/tasks.md` T1 (parser texto→AST).
+Fase 1 (fundação) concluída — T1–T7 feitos (T8/T9 são follow-ups anotados no tasks.md da 001). Fase 2 (importação) em andamento: T1 (parser texto→AST) e T3 (Edge Function `import-tab`, estratégia CifraClub) feitos. Próximo passo: `specs/002-importacao/tasks.md` T2 (Tela do Modo Avançado + Rascunho).

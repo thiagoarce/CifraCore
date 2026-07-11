@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!--
+	Synthetic fixture for the CifraClub extraction strategy contract test.
+
+	This mirrors the exact DOM structure/class names/ids of a real CifraClub
+	song page (verified against a live page fetched during development), but
+	the song title, artist and lyrics are entirely invented. Real CifraClub
+	pages contain copyrighted song lyrics; PLAN.md risk R5 explicitly treats
+	imported content as private-band-use only, so we do not commit a real
+	song's full lyrics into version control. The structural patterns below
+	are what the strategy actually depends on, and are faithfully reproduced:
+	the title tag, the h1 with class t1, the artist breadcrumb link, the
+	cifra_tom element, and the chord-sheet container with chords wrapped in
+	bold tags and inline tab diagrams wrapped in tablatura/cnt spans.
+	(Deliberately not spelling those out as literal tag text here: an
+	earlier draft of this comment did, and its "pre" mention was matched by
+	the strategy's own tag-scanning regex — see stripComments in
+	cifraclub.ts, added because of exactly this.)
+-->
+<html lang="pt-br">
+  <head>
+    <title>Estrada de Poeira - Banda Fictícia - Cifra Club</title>
+    <meta property="og:title"
+      content="Estrada de Poeira - Banda Fictícia - Cifra Club" />
+  </head>
+  <body>
+    <nav class="breadcrumb">
+      <a href="/banda-ficticia/">Banda Fictícia</a>
+    </nav>
+
+    <h1 class="t1">Estrada de Poeira</h1>
+
+    <span id="cifra_tom"
+    >tom: <a class="js-modal-trigger" href="#" title="alterar o tom da cifra">Em</a>
+		</span>
+    <span data-cy="song-tuning" id="cifra_afi"></span>
+    <span data-cy="song-capo" id="cifra_capo"></span>
+
+    <pre>[Intro] <b>Em</b>  <b>C</b>  <b>G</b>  <b>D</b>
+
+<span class="tablatura">[Tab - Intro]
+
+   <b>Em</b>
+<span class="cnt">E|-----------------------------------------|
+B|-------12-------12-------12-------12-----|
+G|----12-------12-------12-------12--------|
+D|-10-------10-------10-------10-----------|
+A|-----------------------------------------|
+E|-----------------------------------------|</span></span>
+
+[Primeira Parte]
+    <b>Em</b>                 <b>C</b>
+Eu caminho pela estrada de poeira
+    <b>G</b>                    <b>D</b>
+Sem saber ao certo aonde vou parar
+
+[Refrão]
+    <b>Em</b>                 <b>C</b>
+Vou seguindo em frente
+    <b>G</b>                    <b>D</b>
+Nada vai me segurar
+
+[Segunda Parte]
+    <b>Em</b>                 <b>C</b>
+O sol se põe atrás da serra
+    <b>G</b>                    <b>D</b>
+E eu ainda tenho estrada pra andar
+</pre>
+  </body>
+</html>
