@@ -4,6 +4,7 @@
 		leaderName: string;
 		onTakeLeadership: () => void;
 		presentEmails: string[];
+		onSuggest: () => void;
 	}
 
 	interface Props {
@@ -16,14 +17,24 @@
 <footer
 	class="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface-raised px-6 py-3"
 >
-	<button
-		type="button"
-		disabled
-		title="Disponível quando houver uma sessão ao vivo (fase 005-T5)"
-		class="h-11 cursor-not-allowed rounded-md border border-border px-3 text-sm text-content-muted opacity-50"
-	>
-		Sugerir música
-	</button>
+	{#if session}
+		<button
+			type="button"
+			onclick={session.onSuggest}
+			class="h-11 cursor-pointer rounded-md border border-border px-3 text-sm text-content hover:border-accent"
+		>
+			Sugerir música
+		</button>
+	{:else}
+		<button
+			type="button"
+			disabled
+			title="Disponível quando houver uma sessão ao vivo (fase 005)"
+			class="h-11 cursor-not-allowed rounded-md border border-border px-3 text-sm text-content-muted opacity-50"
+		>
+			Sugerir música
+		</button>
+	{/if}
 
 	{#if session}
 		<div class="flex flex-wrap items-center gap-3">

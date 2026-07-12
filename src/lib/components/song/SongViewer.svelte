@@ -35,6 +35,7 @@
 		leaderName: string;
 		onTakeLeadership: () => void;
 		presentEmails: string[];
+		onSuggest: () => void;
 	}
 
 	interface Props {

@@ -8,6 +8,7 @@
 	import { fetchMemberEmails } from '$lib/utils/memberNames';
 	import SongViewer from '$lib/components/song/SongViewer.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 	import type { Database } from '$lib/types/database';
 
 	let { data } = $props();
@@ -253,6 +254,144 @@
 				handle?.broadcast(event);
 			});
 	}
+
+	// --- R5: fila de sugestões ----------------------------------------------
+
+	interface PendingSuggestion {
+		id: string;
+		songId: string;
+		songTitle: string;
+		suggestedByName: string;
+	}
+
+	let pendingSuggestions = $state<PendingSuggestion[]>([]);
+
+	// Refetched on load and whenever any live event bumps the session's
+	// clock (a SUGGESTION broadcast among them) — simpler than a dedicated
+	// suggestions store, and the queue is only shown to the leader anyway.
+	$effect(() => {
+		const sessionId = $liveSession?.sessionId ?? null;
+		void $liveSession?.lastEventTimestamp;
+
+		if (!sessionId || !isLeader) {
+			pendingSuggestions = [];
+			return;
+		}
+
+		data.supabase
+			.from('session_suggestions')
+			.select('id, song_id, suggested_by, songs (title)')
+			.eq('session_id', sessionId)
+			.eq('status', 'pending')
+			.order('created_at')
+			.then(({ data: rows }) => {
+				pendingSuggestions = (rows ?? []).map((row) => ({
+					id: row.id,
+					songId: row.song_id,
+					songTitle: row.songs?.title ?? '(sem título)',
+					suggestedByName: memberEmails.get(row.suggested_by) ?? row.suggested_by
+				}));
+			});
+	});
+
+	async function acceptSuggestion(suggestion: PendingSuggestion) {
+		const session = $liveSession;
+		if (!session) return;
+
+		const { error: statusError } = await data.supabase
+			.from('session_suggestions')
+			.update({ status: 'accepted' })
+			.eq('id', suggestion.id);
+
+		if (statusError) return;
+
+		handleChangeSongAsLeader(suggestion.songId);
+		pendingSuggestions = pendingSuggestions.filter((item) => item.id !== suggestion.id);
+	}
+
+	async function dismissSuggestion(suggestion: PendingSuggestion) {
+		await data.supabase
+			.from('session_suggestions')
+			.update({ status: 'dismissed' })
+			.eq('id', suggestion.id);
+
+		pendingSuggestions = pendingSuggestions.filter((item) => item.id !== suggestion.id);
+	}
+
+	// --- "Sugerir Música" modal (any member) --------------------------------
+
+	interface CatalogSong {
+		id: string;
+		title: string;
+		artist: string | null;
+	}
+
+	let suggestModalOpen = $state(false);
+	let suggestCatalog = $state<CatalogSong[]>([]);
+	let suggestQuery = $state('');
+	let suggestError = $state<string | null>(null);
+
+	function openSuggestModal() {
+		suggestModalOpen = true;
+		suggestError = null;
+
+		const band = $currentBand;
+		if (!band) return;
+
+		data.supabase
+			.from('songs')
+			.select('id, title, artist')
+			.eq('band_id', band.id)
+			.order('title')
+			.then(({ data: rows }) => {
+				suggestCatalog = rows ?? [];
+			});
+	}
+
+	const availableSuggestions = $derived(
+		suggestCatalog.filter((catalogSong) => {
+			const q = suggestQuery.trim().toLowerCase();
+			if (!q) return true;
+			return `${catalogSong.title} ${catalogSong.artist ?? ''}`.toLowerCase().includes(q);
+		})
+	);
+
+	async function handleSuggest(catalogSong: CatalogSong) {
+		const session = $liveSession;
+		if (!session || !data.user) return;
+
+		suggestError = null;
+
+		const { data: row, error } = await data.supabase
+			.from('session_suggestions')
+			.insert({
+				session_id: session.sessionId,
+				song_id: catalogSong.id,
+				suggested_by: data.user.id
+			})
+			.select('id')
+			.single();
+
+		if (error || !row) {
+			suggestError = 'Não foi possível sugerir essa música.';
+			return;
+		}
+
+		suggestModalOpen = false;
+
+		const event = {
+			type: 'SUGGESTION' as const,
+			suggestion_id: row.id,
+			song_title: catalogSong.title,
+			suggested_by_name: memberEmails.get(data.user.id) ?? data.user.id,
+			leader_timestamp: Date.now()
+		};
+
+		// Same self-broadcast gap as elsewhere: bump our own clock too, since
+		// the leader's queue effect above re-fetches on lastEventTimestamp.
+		liveSession.applyEvent(event);
+		handle?.broadcast(event);
+	}
 </script>
 
 {#if !$currentBand}
@@ -314,6 +453,38 @@
 		</div>
 	{/if}
 
+	{#if isLeader && pendingSuggestions.length > 0}
+		<div class="border-b border-border bg-surface-raised px-6 py-3">
+			<p class="text-xs font-medium tracking-wide text-content-muted uppercase">Sugestões</p>
+			<ul class="mt-2 flex flex-col gap-2">
+				{#each pendingSuggestions as suggestion (suggestion.id)}
+					<li class="flex items-center justify-between gap-3 rounded-md bg-surface px-3 py-2">
+						<span class="min-w-0 truncate text-sm text-content">
+							{suggestion.songTitle}
+							<span class="text-content-muted">— sugerido por {suggestion.suggestedByName}</span>
+						</span>
+						<div class="flex shrink-0 gap-2">
+							<button
+								type="button"
+								onclick={() => acceptSuggestion(suggestion)}
+								class="h-9 cursor-pointer rounded-md border border-accent px-3 text-sm text-accent hover:opacity-80"
+							>
+								Aceitar
+							</button>
+							<button
+								type="button"
+								onclick={() => dismissSuggestion(suggestion)}
+								class="h-9 cursor-pointer rounded-md border border-border px-3 text-sm text-content-muted hover:text-content"
+							>
+								Dispensar
+							</button>
+						</div>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+
 	{#if loadingSong}
 		<p class="p-6 text-sm text-content-muted">Carregando música...</p>
 	{:else if !song}
@@ -325,7 +496,43 @@
 			{isAdmin}
 			{memberInstrument}
 			supabase={data.supabase}
-			session={{ isLeader, leaderName, onTakeLeadership: handleTakeLeadership, presentEmails }}
+			session={{
+				isLeader,
+				leaderName,
+				onTakeLeadership: handleTakeLeadership,
+				presentEmails,
+				onSuggest: openSuggestModal
+			}}
 		/>
 	{/if}
+
+	<Modal open={suggestModalOpen} title="Sugerir música" onClose={() => (suggestModalOpen = false)}>
+		<input
+			type="search"
+			placeholder="Buscar no repertório..."
+			bind:value={suggestQuery}
+			class="h-11 w-full rounded-md border border-border bg-surface px-3 text-content outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent"
+		/>
+		{#if suggestError}
+			<p class="mt-2 text-sm text-danger" role="alert">{suggestError}</p>
+		{/if}
+		<ul class="mt-3 flex max-h-64 flex-col gap-1 overflow-y-auto">
+			{#each availableSuggestions as catalogSong (catalogSong.id)}
+				<li>
+					<button
+						type="button"
+						onclick={() => handleSuggest(catalogSong)}
+						class="flex h-11 w-full cursor-pointer items-center justify-between rounded px-3 text-left text-sm text-content hover:bg-surface"
+					>
+						<span class="truncate"
+							>{catalogSong.title}{#if catalogSong.artist}
+								· {catalogSong.artist}{/if}</span
+						>
+					</button>
+				</li>
+			{:else}
+				<li class="px-3 py-2 text-sm text-content-muted">Nenhuma música encontrada.</li>
+			{/each}
+		</ul>
+	</Modal>
 {/if}
