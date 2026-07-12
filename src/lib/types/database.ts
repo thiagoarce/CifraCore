@@ -340,6 +340,10 @@ export type Database = {
 		};
 		Functions: {
 			create_band: { Args: { band_name: string }; Returns: string };
+			get_band_member_emails: {
+				Args: { target_band: string };
+				Returns: { email: string; user_id: string }[];
+			};
 			import_song: {
 				Args: {
 					existing_song_id?: string;
