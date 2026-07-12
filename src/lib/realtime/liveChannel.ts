@@ -37,7 +37,7 @@ export function subscribeLiveSession(
 	async function refetchAndReconcile() {
 		const { data } = await supabase
 			.from('live_sessions')
-			.select('id, band_id, leader_id, current_song_id, status')
+			.select('id, band_id, setlist_id, leader_id, current_song_id, status')
 			.eq('band_id', bandId)
 			.maybeSingle();
 
@@ -49,6 +49,7 @@ export function subscribeLiveSession(
 		liveSession.reconcile({
 			id: data.id,
 			band_id: data.band_id,
+			setlist_id: data.setlist_id,
 			leader_id: data.leader_id,
 			leader_name: memberEmails.get(data.leader_id) ?? data.leader_id,
 			current_song_id: data.current_song_id,

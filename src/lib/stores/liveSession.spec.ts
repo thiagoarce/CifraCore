@@ -7,6 +7,7 @@ import type { LiveEvent } from '$lib/types/realtime';
 const baseRow: LiveSessionRow = {
 	id: 'session-1',
 	band_id: 'band-1',
+	setlist_id: 'setlist-1',
 	leader_id: 'user-thiago',
 	leader_name: 'Thiago',
 	current_song_id: 'song-1',
@@ -20,6 +21,7 @@ describe('liveSession store', () => {
 		expect(get(liveSession)).toEqual({
 			sessionId: 'session-1',
 			bandId: 'band-1',
+			setlistId: 'setlist-1',
 			leaderId: 'user-thiago',
 			leaderName: 'Thiago',
 			currentSongId: 'song-1',

@@ -1,7 +1,15 @@
 <script lang="ts">
-	// Placeholders: sugestão/liderança ganham comportamento na 005
-	// (setlists-sync), Modo Palco na 006. Renderizados desabilitados aqui
-	// só para fixar o layout do wireframe (spec 003 R3).
+	interface SessionFooterInfo {
+		isLeader: boolean;
+		leaderName: string;
+		onTakeLeadership: () => void;
+	}
+
+	interface Props {
+		session?: SessionFooterInfo | null;
+	}
+
+	let { session = null }: Props = $props();
 </script>
 
 <footer
@@ -10,13 +18,30 @@
 	<button
 		type="button"
 		disabled
-		title="Disponível quando houver uma sessão ao vivo (fase 005)"
+		title="Disponível quando houver uma sessão ao vivo (fase 005-T5)"
 		class="h-11 cursor-not-allowed rounded-md border border-border px-3 text-sm text-content-muted opacity-50"
 	>
 		Sugerir música
 	</button>
 
-	<span class="text-sm text-content-muted">Sem sessão ao vivo</span>
+	{#if session}
+		<div class="flex items-center gap-3">
+			<span class="text-sm text-content-muted">
+				Líder: <span class="font-medium text-content">{session.leaderName}</span>
+			</span>
+			{#if !session.isLeader}
+				<button
+					type="button"
+					onclick={session.onTakeLeadership}
+					class="h-11 cursor-pointer rounded-md border border-border px-3 text-sm text-content hover:border-accent"
+				>
+					Assumir Liderança
+				</button>
+			{/if}
+		</div>
+	{:else}
+		<span class="text-sm text-content-muted">Sem sessão ao vivo</span>
+	{/if}
 
 	<button
 		type="button"

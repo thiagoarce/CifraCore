@@ -1,11 +1,46 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { invalidate } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/ui/Button.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	// R2: any member can start the session (not just admins) — whoever
+	// starts it becomes the leader.
+	let startingSession = $state(false);
+	let startError = $state<string | null>(null);
+
+	async function handleStartSession() {
+		if (!data.user) return;
+
+		startingSession = true;
+		startError = null;
+
+		const firstSongId = data.items[0]?.song_id ?? null;
+
+		const { error } = await data.supabase.from('live_sessions').insert({
+			band_id: data.setlist.band_id,
+			setlist_id: data.setlist.id,
+			leader_id: data.user.id,
+			current_song_id: firstSongId
+		});
+
+		startingSession = false;
+
+		if (error) {
+			// unique violation on band_id: a session is already running for
+			// this band (started from this or another setlist).
+			startError =
+				error.code === '23505'
+					? 'Já existe uma sessão ativa para esta banda.'
+					: 'Não foi possível iniciar a sessão.';
+			return;
+		}
+
+		await goto(resolve('/session'), { invalidateAll: true });
+	}
 
 	// Seeded once, not reactive to later reloads while the admin is mid-edit
 	// (same pattern as songs/[id]/edit/+page.svelte).
@@ -127,9 +162,17 @@
 </script>
 
 <div class="mx-auto max-w-2xl p-6">
-	<a href={resolve('/setlists')} class="text-sm text-content-muted hover:text-content">
-		&larr; Setlists
-	</a>
+	<div class="flex items-center justify-between gap-4">
+		<a href={resolve('/setlists')} class="text-sm text-content-muted hover:text-content">
+			&larr; Setlists
+		</a>
+		<Button variant="primary" onclick={handleStartSession} disabled={startingSession}>
+			{startingSession ? 'Iniciando...' : 'Iniciar Sessão'}
+		</Button>
+	</div>
+	{#if startError}
+		<p class="mt-2 text-sm text-danger" role="alert">{startError}</p>
+	{/if}
 
 	{#if data.isAdmin}
 		<form class="mt-4 flex flex-wrap items-end gap-2" onsubmit={handleSaveDetails}>

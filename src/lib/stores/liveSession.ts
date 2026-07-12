@@ -7,6 +7,7 @@ type SessionStatus = Database['public']['Enums']['session_status'];
 export interface LiveSessionState {
 	sessionId: string;
 	bandId: string;
+	setlistId: string | null;
 	leaderId: string;
 	leaderName: string;
 	currentSongId: string | null;
@@ -17,6 +18,7 @@ export interface LiveSessionState {
 export interface LiveSessionRow {
 	id: string;
 	band_id: string;
+	setlist_id: string | null;
 	leader_id: string;
 	leader_name: string;
 	current_song_id: string | null;
@@ -44,6 +46,7 @@ function createLiveSessionStore() {
 			set({
 				sessionId: row.id,
 				bandId: row.band_id,
+				setlistId: row.setlist_id,
 				leaderId: row.leader_id,
 				leaderName: row.leader_name,
 				currentSongId: row.current_song_id,
