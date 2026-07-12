@@ -21,6 +21,7 @@
 
 	const navItems = [
 		{ href: '/dashboard', label: 'Catálogo' },
+		{ href: '/setlists', label: 'Setlists' },
 		{ href: '/bands', label: 'Bandas' },
 		{ href: '/import', label: 'Importar música' }
 	] as const;

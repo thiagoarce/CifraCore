@@ -362,6 +362,10 @@ export type Database = {
 			};
 			is_band_admin: { Args: { target_band: string }; Returns: boolean };
 			is_band_member: { Args: { target_band: string }; Returns: boolean };
+			reorder_setlist: {
+				Args: { song_ids: string[]; target_setlist_id: string };
+				Returns: undefined;
+			};
 		};
 		Enums: {
 			band_role: 'admin' | 'member';
