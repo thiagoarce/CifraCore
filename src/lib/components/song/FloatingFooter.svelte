@@ -3,6 +3,7 @@
 		isLeader: boolean;
 		leaderName: string;
 		onTakeLeadership: () => void;
+		presentEmails: string[];
 	}
 
 	interface Props {
@@ -13,7 +14,7 @@
 </script>
 
 <footer
-	class="sticky bottom-0 flex items-center justify-between gap-3 border-t border-border bg-surface-raised px-6 py-3"
+	class="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface-raised px-6 py-3"
 >
 	<button
 		type="button"
@@ -25,9 +26,12 @@
 	</button>
 
 	{#if session}
-		<div class="flex items-center gap-3">
+		<div class="flex flex-wrap items-center gap-3">
 			<span class="text-sm text-content-muted">
 				Líder: <span class="font-medium text-content">{session.leaderName}</span>
+			</span>
+			<span class="text-sm text-content-muted" title={session.presentEmails.join(', ')}>
+				{session.presentEmails.length} conectado{session.presentEmails.length === 1 ? '' : 's'}
 			</span>
 			{#if !session.isLeader}
 				<button

@@ -2,6 +2,7 @@ import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '$lib/types/database';
 import type { LiveEvent } from '$lib/types/realtime';
 import { liveSession } from '$lib/stores/liveSession';
+import { presentUserIds } from '$lib/stores/presence';
 
 const BROADCAST_EVENT = 'live_event';
 
@@ -15,7 +16,7 @@ export interface LiveChannelHandle {
 
 /**
  * Subscribes to the band's live session channel (`live:{band_id}`) and
- * keeps the `$liveSession` store reconciled with it.
+ * keeps the `$liveSession` and `$presentUserIds` stores reconciled with it.
  *
  * Per plan.md: the broadcast is a notification, `live_sessions` is truth.
  * On every (re)subscription — including the Realtime client's own silent
@@ -32,7 +33,8 @@ export interface LiveChannelHandle {
 export function subscribeLiveSession(
 	supabase: SupabaseClient<Database>,
 	bandId: string,
-	memberEmails: Map<string, string>
+	memberEmails: Map<string, string>,
+	currentUserId: string
 ): LiveChannelHandle {
 	async function refetchAndReconcile() {
 		const { data } = await supabase
@@ -57,14 +59,20 @@ export function subscribeLiveSession(
 		});
 	}
 
+	// Presence key = user_id, so presenceState()'s keys are directly the
+	// user ids of everyone connected (no need to unpack per-entry payloads).
 	const channel = supabase
-		.channel(`live:${bandId}`)
+		.channel(`live:${bandId}`, { config: { presence: { key: currentUserId } } })
 		.on('broadcast', { event: BROADCAST_EVENT }, ({ payload }) => {
 			liveSession.applyEvent(payload as LiveEvent);
+		})
+		.on('presence', { event: 'sync' }, () => {
+			presentUserIds.set(Object.keys(channel.presenceState()));
 		})
 		.subscribe((status) => {
 			if (status === 'SUBSCRIBED') {
 				refetchAndReconcile();
+				channel.track({ user_id: currentUserId });
 			}
 		});
 
@@ -74,6 +82,7 @@ export function subscribeLiveSession(
 			return channel.send({ type: 'broadcast', event: BROADCAST_EVENT, payload: event });
 		},
 		unsubscribe() {
+			presentUserIds.clear();
 			supabase.removeChannel(channel);
 		}
 	};

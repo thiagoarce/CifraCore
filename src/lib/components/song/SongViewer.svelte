@@ -34,6 +34,7 @@
 		isLeader: boolean;
 		leaderName: string;
 		onTakeLeadership: () => void;
+		presentEmails: string[];
 	}
 
 	interface Props {

@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { currentBand } from '$lib/stores/currentBand';
 	import { liveSession } from '$lib/stores/liveSession';
+	import { presentUserIds } from '$lib/stores/presence';
 	import { subscribeLiveSession, type LiveChannelHandle } from '$lib/realtime/liveChannel';
 	import { fetchMemberEmails } from '$lib/utils/memberNames';
 	import SongViewer from '$lib/components/song/SongViewer.svelte';
@@ -44,6 +45,8 @@
 			handle?.unsubscribe();
 			handle = null;
 			subscribedBandId = null;
+			followMode = 'leader';
+			individualSongId = null;
 			return;
 		}
 
@@ -53,14 +56,20 @@
 		handle = null;
 		subscribedBandId = band.id;
 		liveSession.clear();
+		followMode = 'leader';
+		individualSongId = null;
 		loadingSession = true;
 
 		(async () => {
 			memberEmails = await fetchMemberEmails(data.supabase, band.id);
-			handle = subscribeLiveSession(data.supabase, band.id, memberEmails);
+			if (data.user) {
+				handle = subscribeLiveSession(data.supabase, band.id, memberEmails, data.user.id);
+			}
 			loadingSession = false;
 		})();
 	});
+
+	const presentEmails = $derived($presentUserIds.map((id) => memberEmails.get(id) ?? id));
 
 	onDestroy(() => {
 		handle?.unsubscribe();
@@ -114,14 +123,39 @@
 		liveSession.clear();
 	}
 
-	// --- Current song, reactive to $liveSession.currentSongId --------------
+	// --- Modo Seguir Líder / Individual (R7) --------------------------------
+	//
+	// "Seguir Líder" (default): the displayed song tracks $liveSession's
+	// current song directly. "Individual": the member locked onto a song of
+	// their own choosing (or the leader changed songs while they were
+	// browsing); their screen stops reacting to the leader's changes until
+	// they explicitly click "Voltar a seguir".
+	let followMode = $state<'leader' | 'individual'>('leader');
+	let individualSongId = $state<string | null>(null);
+
+	const effectiveSongId = $derived(
+		followMode === 'individual' ? individualSongId : ($liveSession?.currentSongId ?? null)
+	);
+
+	const isBehindTheBand = $derived(
+		followMode === 'individual' &&
+			$liveSession !== null &&
+			individualSongId !== $liveSession.currentSongId
+	);
+
+	function handleReturnToLeader() {
+		followMode = 'leader';
+		individualSongId = null;
+	}
+
+	// --- Current song, reactive to effectiveSongId --------------------------
 
 	let song = $state<SongRow | null>(null);
 	let tabs = $state<TabRow[]>([]);
 	let loadingSong = $state(false);
 
 	$effect(() => {
-		const songId = $liveSession?.currentSongId ?? null;
+		const songId = effectiveSongId;
 
 		if (!songId) {
 			song = null;
@@ -182,7 +216,20 @@
 			});
 	});
 
-	function handleChangeSong(songId: string) {
+	// Anyone can browse the setlist — the leader's click changes the song
+	// for everyone; a follower's click only enters Individual mode locally
+	// (R7), it never writes to live_sessions.
+	function handlePickSong(songId: string) {
+		if (isLeader) {
+			handleChangeSongAsLeader(songId);
+			return;
+		}
+
+		followMode = 'individual';
+		individualSongId = songId;
+	}
+
+	function handleChangeSongAsLeader(songId: string) {
 		const session = $liveSession;
 		if (!session || songId === session.currentSongId) return;
 
@@ -231,25 +278,39 @@
 		</p>
 	</div>
 {:else}
-	{#if isLeader}
-		<div
-			class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-raised px-6 py-3"
-		>
-			<div class="flex flex-wrap gap-2">
-				{#each setlistItems as item (item.song_id)}
-					<button
-						type="button"
-						onclick={() => handleChangeSong(item.song_id)}
-						class="h-9 cursor-pointer rounded-md border px-3 text-sm {item.song_id ===
-						$liveSession?.currentSongId
-							? 'border-accent text-accent'
-							: 'border-border text-content-muted hover:text-content'}"
-					>
-						{item.title}
-					</button>
-				{/each}
-			</div>
+	<div
+		class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-raised px-6 py-3"
+	>
+		<div class="flex flex-wrap gap-2">
+			{#each setlistItems as item (item.song_id)}
+				<button
+					type="button"
+					onclick={() => handlePickSong(item.song_id)}
+					class="h-9 cursor-pointer rounded-md border px-3 text-sm {item.song_id === effectiveSongId
+						? 'border-accent text-accent'
+						: 'border-border text-content-muted hover:text-content'}"
+				>
+					{item.title}
+				</button>
+			{/each}
+		</div>
+		{#if isLeader}
 			<Button variant="danger" size="sm" onclick={handleEndSession}>Encerrar sessão</Button>
+		{/if}
+	</div>
+
+	{#if isBehindTheBand}
+		<div
+			class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-accent/10 px-6 py-2"
+		>
+			<p class="text-sm text-content">A banda está tocando outra música.</p>
+			<button
+				type="button"
+				onclick={handleReturnToLeader}
+				class="h-9 cursor-pointer rounded-md border border-accent px-3 text-sm text-accent hover:opacity-80"
+			>
+				Voltar a seguir
+			</button>
 		</div>
 	{/if}
 
@@ -264,7 +325,7 @@
 			{isAdmin}
 			{memberInstrument}
 			supabase={data.supabase}
-			session={{ isLeader, leaderName, onTakeLeadership: handleTakeLeadership }}
+			session={{ isLeader, leaderName, onTakeLeadership: handleTakeLeadership, presentEmails }}
 		/>
 	{/if}
 {/if}
