@@ -26,7 +26,7 @@ Visão geral da ordem de construção, dependências entre features e delegaçã
 | 002 Importação           | `specs/002-importacao/`           | ✅ Concluída    |
 | 003 Catálogo e UI        | `specs/003-catalogo-ui/`          | ✅ Concluída    |
 | 004 Inteligência Musical | `specs/004-inteligencia-musical/` | ✅ Concluída    |
-| 005 Setlists e Sincronia | `specs/005-setlists-sync/`        | 📋 Especificada |
+| 005 Setlists e Sincronia | `specs/005-setlists-sync/`        | ✅ Concluída    |
 | 006 Modo Palco           | `specs/006-modo-palco/`           | 📋 Especificada |
 | 007 Offline e PWA        | `specs/007-offline-pwa/`          | 📋 Especificada |
 | 008 Arquivos e PDF       | `specs/008-arquivos-pdf/`         | 📋 Especificada |
