@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { ASTBlock } from '$lib/types/ast';
+	import type { RenderedBlock } from '$lib/utils/renderedAst';
 	import Badge from '$lib/components/ui/Badge.svelte';
 
 	interface Props {
-		blocks: ASTBlock[];
+		blocks: RenderedBlock[];
 		activeVoice?: string | null;
 	}
 
@@ -27,8 +27,15 @@
 						<Badge>{block.role}</Badge>
 					{/if}
 				</div>
-				<pre
-					class="overflow-x-auto font-mono text-sm leading-relaxed text-content">{block.content}</pre>
+				<div class="overflow-x-auto font-mono text-sm leading-relaxed text-content">
+					{#each block.lines as line, lineIndex (lineIndex)}
+						<div class="whitespace-pre">
+							{#each line.segments as segment, segmentIndex (segmentIndex)}{#if segment.isChord}<span
+										class="font-semibold text-chord">{segment.text}</span
+									>{:else}{segment.text}{/if}{/each}{#if line.segments.length === 0 || line.segments.every((s) => s.text === '')}&nbsp;{/if}
+						</div>
+					{/each}
+				</div>
 			</section>
 		{/each}
 	</div>

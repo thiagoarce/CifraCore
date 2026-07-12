@@ -1,7 +1,10 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { untrack } from 'svelte';
+	import { goto, invalidate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { preferredInstrument } from '$lib/stores/preferredInstrument';
+	import { transposeKey } from '$lib/utils/tonalWrapper';
+	import { computeRenderedAst } from '$lib/utils/renderedAst';
 	import SongHeader from '$lib/components/song/SongHeader.svelte';
 	import InstrumentTabs from '$lib/components/song/InstrumentTabs.svelte';
 	import AstRenderer from '$lib/components/song/AstRenderer.svelte';
@@ -68,16 +71,88 @@
 	$effect(() => {
 		if (activeInstrument !== '') preferredInstrument.select(activeInstrument);
 	});
+
+	// --- Spec 004: transposição, capo, unroll+destaque de acordes --------
+
+	// Live offset is local only (spec R4: "não persiste automaticamente").
+	// Resetting it when the song's own persisted key changes (e.g. after
+	// "Salvar como tom da banda") keeps it from drifting.
+	let transposeOffset = $state(0);
+	const baseKey = $derived(data.song.preferred_key ?? data.song.original_key);
+	$effect(() => {
+		void baseKey;
+		transposeOffset = 0;
+	});
+
+	const soundingKey = $derived(baseKey ? transposeKey(baseKey, transposeOffset) : null);
+
+	// Capo persists immediately (R5) — seeded once from the load, then it's
+	// this component's own optimistic local copy.
+	let capo = $state(untrack(() => data.song.capo));
+	let capoError = $state<string | null>(null);
+
+	const renderedBlocks = $derived(computeRenderedAst(blocks, transposeOffset, capo));
+
+	async function handleCapoChange(newCapo: number) {
+		capoError = null;
+		const previous = capo;
+		capo = newCapo;
+
+		const { error } = await data.supabase
+			.from('songs')
+			.update({ capo: newCapo })
+			.eq('id', data.song.id);
+
+		if (error) {
+			capo = previous;
+			capoError = 'Não foi possível salvar o capotraste.';
+		}
+	}
+
+	let savingBandKey = $state(false);
+	let bandKeyError = $state<string | null>(null);
+
+	async function handleSaveAsBandKey() {
+		if (!soundingKey) return;
+		bandKeyError = null;
+		savingBandKey = true;
+
+		const { error } = await data.supabase
+			.from('songs')
+			.update({ preferred_key: soundingKey })
+			.eq('id', data.song.id);
+
+		savingBandKey = false;
+
+		if (error) {
+			bandKeyError = 'Não foi possível salvar o tom da banda.';
+			return;
+		}
+
+		await invalidate('app:song');
+	}
 </script>
 
 <div class="flex min-h-screen flex-col">
 	<SongHeader
 		title={data.song.title}
 		artist={data.song.artist}
-		originalKey={data.song.original_key}
+		{soundingKey}
+		offset={transposeOffset}
+		onTranspose={(direction) => (transposeOffset += direction)}
+		{capo}
 		isAdmin={data.isAdmin}
 		onEdit={() => goto(resolve(`/songs/${data.song.id}/edit`))}
+		onSaveAsBandKey={handleSaveAsBandKey}
+		onCapoChange={handleCapoChange}
 	/>
+
+	{#if capoError || bandKeyError}
+		<p class="px-6 pt-2 text-sm text-danger" role="alert">{capoError ?? bandKeyError}</p>
+	{/if}
+	{#if savingBandKey}
+		<p class="px-6 pt-2 text-sm text-content-muted">Salvando...</p>
+	{/if}
 
 	{#if data.tabs.length === 0}
 		<p class="p-6 text-sm text-content-muted">Essa música ainda não tem nenhuma tab.</p>
@@ -87,7 +162,7 @@
 		<VoiceSelector {roles} active={activeVoice} onSelect={(voice) => (activeVoice = voice)} />
 
 		<div class="flex-1 overflow-y-auto">
-			<AstRenderer {blocks} {activeVoice} />
+			<AstRenderer blocks={renderedBlocks} {activeVoice} />
 		</div>
 	{/if}
 

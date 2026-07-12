@@ -4,12 +4,28 @@
 	interface Props {
 		title: string;
 		artist: string | null;
-		originalKey: string | null;
+		soundingKey: string | null;
+		offset: number;
+		onTranspose: (direction: 1 | -1) => void;
+		capo: number;
 		isAdmin: boolean;
 		onEdit?: () => void;
+		onSaveAsBandKey?: () => void;
+		onCapoChange?: (capo: number) => void;
 	}
 
-	let { title, artist, originalKey, isAdmin, onEdit }: Props = $props();
+	let {
+		title,
+		artist,
+		soundingKey,
+		offset,
+		onTranspose,
+		capo,
+		isAdmin,
+		onEdit,
+		onSaveAsBandKey,
+		onCapoChange
+	}: Props = $props();
 </script>
 
 <header
@@ -22,31 +38,67 @@
 		{/if}
 	</div>
 
-	<div class="flex items-center gap-3">
-		{#if originalKey}
-			<div
-				class="flex items-center gap-1 rounded-md border border-border px-1"
-				title="Transposição chega na fase 004 (inteligência musical)"
-			>
+	<div class="flex flex-wrap items-center gap-3">
+		{#if capo > 0}
+			<span class="text-sm text-content-muted">Capo: {capo}ª casa</span>
+		{/if}
+
+		{#if isAdmin && onCapoChange}
+			<div class="flex items-center gap-1 rounded-md border border-border px-1" title="Capotraste">
 				<button
 					type="button"
-					disabled
-					aria-label="Transpor um tom abaixo"
-					class="flex h-11 w-11 cursor-not-allowed items-center justify-center rounded text-content-muted opacity-50"
+					disabled={capo <= 0}
+					onclick={() => onCapoChange(capo - 1)}
+					aria-label="Diminuir capotraste"
+					class="flex h-9 w-9 cursor-pointer items-center justify-center rounded text-content-muted hover:text-content disabled:cursor-not-allowed disabled:opacity-30"
 				>
 					−
 				</button>
-				<span class="w-10 text-center text-sm font-medium text-content">{originalKey}</span>
+				<span class="w-6 text-center text-xs text-content-muted">{capo}</span>
 				<button
 					type="button"
-					disabled
-					aria-label="Transpor um tom acima"
-					class="flex h-11 w-11 cursor-not-allowed items-center justify-center rounded text-content-muted opacity-50"
+					disabled={capo >= 12}
+					onclick={() => onCapoChange(capo + 1)}
+					aria-label="Aumentar capotraste"
+					class="flex h-9 w-9 cursor-pointer items-center justify-center rounded text-content-muted hover:text-content disabled:cursor-not-allowed disabled:opacity-30"
 				>
 					+
 				</button>
 			</div>
 		{/if}
+
+		{#if soundingKey}
+			<div class="flex items-center gap-1 rounded-md border border-border px-1" title="Transpor">
+				<button
+					type="button"
+					onclick={() => onTranspose(-1)}
+					aria-label="Transpor um tom abaixo"
+					class="flex h-9 w-9 cursor-pointer items-center justify-center rounded text-content-muted hover:text-content"
+				>
+					−
+				</button>
+				<span class="w-10 text-center text-sm font-medium text-content">{soundingKey}</span>
+				<button
+					type="button"
+					onclick={() => onTranspose(1)}
+					aria-label="Transpor um tom acima"
+					class="flex h-9 w-9 cursor-pointer items-center justify-center rounded text-content-muted hover:text-content"
+				>
+					+
+				</button>
+			</div>
+		{/if}
+
+		{#if isAdmin && offset !== 0 && onSaveAsBandKey}
+			<button
+				type="button"
+				onclick={onSaveAsBandKey}
+				class="h-11 cursor-pointer text-sm text-accent hover:opacity-80"
+			>
+				Salvar como tom da banda
+			</button>
+		{/if}
+
 		{#if isAdmin && onEdit}
 			<Button variant="secondary" onclick={onEdit}>Editar</Button>
 		{/if}
