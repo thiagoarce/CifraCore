@@ -40,6 +40,7 @@ Regras:
   - `GET /state?token=...`: valida assinatura/expiração e retorna estado da sessão + música corrente + tabs (payload montado server-side com service role — **o token nunca vira sessão Supabase e não passa por RLS de membro**).
 - Rota `/guest/[token]`: página standalone (fora do grupo `(app)`), assina o canal realtime em modo somente-leitura (broadcast é público por canal; a _escrita_ de convidado é impossível porque toda mutação passa por RLS/Edge autenticada).
 - Justificativa (PRD §5): superfície de segurança mínima — sem RLS temporária, sem conta fantasma.
+- **_Feito._** `/generate` não reimplementa a checagem de membro: encaminha o próprio header `Authorization` do chamador pro PostgREST, deixando a política `"members read live session"` (já existente desde a 001) decidir sozinha se a sessão é visível. `/state` roda com service role e escopa manualmente toda query pelos claims do token (nunca por parâmetro da requisição em si). Retorna também `band_id` no payload, além de música+tabs, pra `/guest/[token]` conseguir assinar o mesmo canal `live:{band_id}` da sessão real. Ver `specs/005-setlists-sync/tasks.md` T6 para os achados de implementação (limite de exports de `+page.ts`, anon key como Bearer do gateway de functions)._
 
 ## Setlists
 

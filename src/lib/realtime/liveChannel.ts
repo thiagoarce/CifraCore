@@ -4,7 +4,10 @@ import type { LiveEvent } from '$lib/types/realtime';
 import { liveSession } from '$lib/stores/liveSession';
 import { presentUserIds } from '$lib/stores/presence';
 
-const BROADCAST_EVENT = 'live_event';
+// Exported so the read-only guest channel (spec 005-T6, no auth/RLS at
+// all — the guest just listens on the same public broadcast) uses the
+// exact same event name instead of a second magic string.
+export const BROADCAST_EVENT = 'live_event';
 
 export interface LiveChannelHandle {
 	channel: RealtimeChannel;

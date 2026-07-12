@@ -124,6 +124,36 @@
 		liveSession.clear();
 	}
 
+	// --- R8: Modo Convidado (link assinado, gerado pelo líder) --------------
+
+	let guestModalOpen = $state(false);
+	let guestLink = $state<string | null>(null);
+	let guestError = $state<string | null>(null);
+	let generatingGuestLink = $state(false);
+
+	async function handleGenerateGuestLink() {
+		const session = $liveSession;
+		if (!session) return;
+
+		guestModalOpen = true;
+		guestError = null;
+		guestLink = null;
+		generatingGuestLink = true;
+
+		const { data: fnData, error } = await data.supabase.functions.invoke('guest-access/generate', {
+			body: { session_id: session.sessionId }
+		});
+
+		generatingGuestLink = false;
+
+		if (error || !fnData?.data?.token) {
+			guestError = 'Não foi possível gerar o link de convidado.';
+			return;
+		}
+
+		guestLink = `${window.location.origin}${resolve(`/guest/${fnData.data.token}`)}`;
+	}
+
 	// --- Modo Seguir Líder / Individual (R7) --------------------------------
 	//
 	// "Seguir Líder" (default): the displayed song tracks $liveSession's
@@ -434,7 +464,12 @@
 			{/each}
 		</div>
 		{#if isLeader}
-			<Button variant="danger" size="sm" onclick={handleEndSession}>Encerrar sessão</Button>
+			<div class="flex gap-2">
+				<Button variant="secondary" size="sm" onclick={handleGenerateGuestLink}>
+					Convidar substituto
+				</Button>
+				<Button variant="danger" size="sm" onclick={handleEndSession}>Encerrar sessão</Button>
+			</div>
 		{/if}
 	</div>
 
@@ -534,5 +569,24 @@
 				<li class="px-3 py-2 text-sm text-content-muted">Nenhuma música encontrada.</li>
 			{/each}
 		</ul>
+	</Modal>
+
+	<Modal open={guestModalOpen} title="Convidar substituto" onClose={() => (guestModalOpen = false)}>
+		{#if generatingGuestLink}
+			<p class="text-sm text-content-muted">Gerando link...</p>
+		{:else if guestError}
+			<p class="text-sm text-danger" role="alert">{guestError}</p>
+		{:else if guestLink}
+			<p class="text-sm text-content-muted">
+				Link válido por 24h, somente leitura, sem precisar de conta:
+			</p>
+			<input
+				type="text"
+				readonly
+				value={guestLink}
+				onclick={(event) => event.currentTarget.select()}
+				class="mt-3 h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-content outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent"
+			/>
+		{/if}
 	</Modal>
 {/if}
