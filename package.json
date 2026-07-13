@@ -45,6 +45,7 @@
 	"dependencies": {
 		"@supabase/ssr": "^0.12.0",
 		"@supabase/supabase-js": "^2.110.0",
-		"@tonaljs/tonal": "^4.10.0"
+		"@tonaljs/tonal": "^4.10.0",
+		"worker-timers": "^8.0.33"
 	}
 }
