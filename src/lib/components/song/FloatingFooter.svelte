@@ -9,9 +9,10 @@
 
 	interface Props {
 		session?: SessionFooterInfo | null;
+		onEnterStageMode: () => void;
 	}
 
-	let { session = null }: Props = $props();
+	let { session = null, onEnterStageMode }: Props = $props();
 </script>
 
 <footer
@@ -60,9 +61,8 @@
 
 	<button
 		type="button"
-		disabled
-		title="Disponível na fase de Modo Palco (fase 006)"
-		class="h-11 cursor-not-allowed rounded-md bg-accent px-4 text-sm font-medium text-accent-content opacity-50"
+		onclick={onEnterStageMode}
+		class="h-11 cursor-pointer rounded-md bg-accent px-4 text-sm font-medium text-accent-content hover:opacity-90"
 	>
 		Modo Palco
 	</button>

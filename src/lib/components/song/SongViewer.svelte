@@ -1,12 +1,15 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { preferredInstrument } from '$lib/stores/preferredInstrument';
 	import { transposeKey } from '$lib/utils/tonalWrapper';
 	import { computeRenderedAst } from '$lib/utils/renderedAst';
+	import { createWakeLockController } from '$lib/utils/wakeLock';
 	import SongHeader from '$lib/components/song/SongHeader.svelte';
 	import InstrumentTabs from '$lib/components/song/InstrumentTabs.svelte';
 	import AstRenderer from '$lib/components/song/AstRenderer.svelte';
 	import VoiceSelector from '$lib/components/song/VoiceSelector.svelte';
 	import FloatingFooter from '$lib/components/song/FloatingFooter.svelte';
+	import AutoScrollContainer from '$lib/components/stage/AutoScrollContainer.svelte';
 	import type { ASTBlock } from '$lib/types/ast';
 	import type { Database } from '$lib/types/database';
 	import type { SupabaseClient } from '@supabase/supabase-js';
@@ -166,40 +169,95 @@
 			bandKeyError = 'Não foi possível salvar o tom da banda.';
 		}
 	}
+
+	// --- Spec 006: Modo Extremo + Wake Lock ---------------------------------
+	//
+	// SongViewer is reused inside the AppShell's sidebar/header (songs/[id],
+	// session) AND standalone (guest) — it has no control over an ancestor
+	// layout's DOM, so "hiding header/sidebar/footer" (plan.md's literal
+	// wording) is done by rendering itself as a fixed, full-viewport overlay
+	// instead of a global CSS class reaching into unrelated components. The
+	// visual result (tunnel vision, nothing else visible) is the same.
+	let stageMode = $state(false);
+	let wakeLockWarning = $state<string | null>(null);
+
+	const wakeLock = createWakeLockController(() => {
+		wakeLockWarning =
+			'Seu navegador não consegue manter a tela ligada automaticamente — desative o bloqueio automático de tela nas configurações do aparelho.';
+	});
+
+	$effect(() => {
+		if (stageMode) {
+			wakeLock.acquire();
+			document.documentElement.requestFullscreen?.().catch(() => {
+				// iOS Safari and others don't support it in every context —
+				// the fixed-overlay CSS is the guaranteed behavior, native
+				// fullscreen is a bonus (plan.md).
+			});
+		} else {
+			wakeLock.release();
+			if (document.fullscreenElement) {
+				document.exitFullscreen?.().catch(() => {});
+			}
+		}
+	});
+
+	onDestroy(() => {
+		wakeLock.release();
+	});
 </script>
 
-<div class="flex min-h-screen flex-col">
-	<SongHeader
-		title={song.title}
-		artist={song.artist}
-		{soundingKey}
-		offset={transposeOffset}
-		onTranspose={(direction) => (transposeOffset += direction)}
-		{capo}
-		{isAdmin}
-		{onEdit}
-		onSaveAsBandKey={handleSaveAsBandKey}
-		onCapoChange={handleCapoChange}
-	/>
+<div
+	class={stageMode ? 'fixed inset-0 z-40 flex flex-col bg-surface' : 'flex min-h-screen flex-col'}
+>
+	{#if !stageMode}
+		<SongHeader
+			title={song.title}
+			artist={song.artist}
+			{soundingKey}
+			offset={transposeOffset}
+			onTranspose={(direction) => (transposeOffset += direction)}
+			{capo}
+			{isAdmin}
+			{onEdit}
+			onSaveAsBandKey={handleSaveAsBandKey}
+			onCapoChange={handleCapoChange}
+		/>
 
-	{#if capoError || bandKeyError}
-		<p class="px-6 pt-2 text-sm text-danger" role="alert">{capoError ?? bandKeyError}</p>
+		{#if capoError || bandKeyError}
+			<p class="px-6 pt-2 text-sm text-danger" role="alert">{capoError ?? bandKeyError}</p>
+		{/if}
+		{#if savingBandKey}
+			<p class="px-6 pt-2 text-sm text-content-muted">Salvando...</p>
+		{/if}
+		{#if wakeLockWarning}
+			<p class="px-6 pt-2 text-sm text-content-muted" role="alert">{wakeLockWarning}</p>
+		{/if}
+
+		{#if tabs.length === 0}
+			<p class="p-6 text-sm text-content-muted">Essa música ainda não tem nenhuma tab.</p>
+		{:else}
+			<InstrumentTabs tabs={tabInfos} bind:active={activeInstrument} />
+			<VoiceSelector {roles} active={activeVoice} onSelect={(voice) => (activeVoice = voice)} />
+		{/if}
 	{/if}
-	{#if savingBandKey}
-		<p class="px-6 pt-2 text-sm text-content-muted">Salvando...</p>
-	{/if}
 
-	{#if tabs.length === 0}
-		<p class="p-6 text-sm text-content-muted">Essa música ainda não tem nenhuma tab.</p>
-	{:else}
-		<InstrumentTabs tabs={tabInfos} bind:active={activeInstrument} />
-
-		<VoiceSelector {roles} active={activeVoice} onSelect={(voice) => (activeVoice = voice)} />
-
-		<div class="flex-1 overflow-y-auto">
+	{#if tabs.length > 0}
+		<AutoScrollContainer class="flex-1">
 			<AstRenderer blocks={renderedBlocks} {activeVoice} />
-		</div>
+		</AutoScrollContainer>
 	{/if}
 
-	<FloatingFooter {session} />
+	{#if stageMode}
+		<button
+			type="button"
+			onclick={() => (stageMode = false)}
+			aria-label="Sair do Modo Extremo"
+			class="fixed top-4 right-4 z-50 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-black/30 text-white/70 hover:text-white"
+		>
+			✕
+		</button>
+	{:else}
+		<FloatingFooter {session} onEnterStageMode={() => (stageMode = true)} />
+	{/if}
 </div>
