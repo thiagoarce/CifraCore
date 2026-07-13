@@ -4,12 +4,14 @@
 	import { transposeKey } from '$lib/utils/tonalWrapper';
 	import { computeRenderedAst } from '$lib/utils/renderedAst';
 	import { createWakeLockController } from '$lib/utils/wakeLock';
+	import { autoScroll } from '$lib/stores/autoScroll';
 	import SongHeader from '$lib/components/song/SongHeader.svelte';
 	import InstrumentTabs from '$lib/components/song/InstrumentTabs.svelte';
 	import AstRenderer from '$lib/components/song/AstRenderer.svelte';
 	import VoiceSelector from '$lib/components/song/VoiceSelector.svelte';
 	import FloatingFooter from '$lib/components/song/FloatingFooter.svelte';
 	import AutoScrollContainer from '$lib/components/stage/AutoScrollContainer.svelte';
+	import StageControls from '$lib/components/stage/StageControls.svelte';
 	import type { ASTBlock } from '$lib/types/ast';
 	import type { Database } from '$lib/types/database';
 	import type { SupabaseClient } from '@supabase/supabase-js';
@@ -31,6 +33,7 @@
 		original_key: string | null;
 		preferred_key: string | null;
 		capo: number;
+		bpm: number | null;
 	}
 
 	interface SessionFooterInfo {
@@ -49,9 +52,25 @@
 		supabase: SupabaseClient<Database>;
 		onEdit?: () => void;
 		session?: SessionFooterInfo | null;
+		/** 006: session integration for the playback clock — leader-only controls, setlist nav via pedal. Undefined outside a session (solo practice, R8: purely local control). */
+		playback?: {
+			canControl: boolean;
+			onPlay: () => void;
+			onPause: () => void;
+			onNavSong?: (direction: 1 | -1) => void;
+		};
 	}
 
-	let { song, tabs, isAdmin, memberInstrument, supabase, onEdit, session = null }: Props = $props();
+	let {
+		song,
+		tabs,
+		isAdmin,
+		memberInstrument,
+		supabase,
+		onEdit,
+		session = null,
+		playback
+	}: Props = $props();
 
 	const tabInfos = $derived(
 		tabs.map((tab) => ({
@@ -91,6 +110,7 @@
 	$effect(() => {
 		void song.id;
 		activeInstrument = '';
+		autoScroll.reset();
 	});
 
 	const activeTab = $derived(tabs.find((tab) => tab.instrument === activeInstrument) ?? null);
@@ -136,6 +156,12 @@
 	let capoError = $state<string | null>(null);
 
 	const renderedBlocks = $derived(computeRenderedAst(blocks, transposeOffset, capo));
+
+	// Feeds the duration heuristic (006 T6) — a rough proxy for "how long
+	// this song visually is", not a precise measure.
+	const lineCount = $derived(
+		renderedBlocks.reduce((total, block) => total + block.lines.length, 0)
+	);
 
 	async function handleCapoChange(newCapo: number) {
 		capoError = null;
@@ -243,9 +269,19 @@
 	{/if}
 
 	{#if tabs.length > 0}
-		<AutoScrollContainer class="flex-1">
+		<AutoScrollContainer class="flex-1" onNavSong={playback?.onNavSong}>
 			<AstRenderer blocks={renderedBlocks} {activeVoice} />
 		</AutoScrollContainer>
+
+		<StageControls
+			songId={song.id}
+			{lineCount}
+			bpm={song.bpm}
+			canControl={playback?.canControl ?? true}
+			onPlay={playback?.onPlay}
+			onPause={playback?.onPause}
+			compact={stageMode}
+		/>
 	{/if}
 
 	{#if stageMode}

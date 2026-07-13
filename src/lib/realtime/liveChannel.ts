@@ -37,7 +37,9 @@ export function subscribeLiveSession(
 	supabase: SupabaseClient<Database>,
 	bandId: string,
 	memberEmails: Map<string, string>,
-	currentUserId: string
+	currentUserId: string,
+	/** Called for every broadcast received, in addition to $liveSession's own handling — used by 006 to drive the local auto-scroll clock from PLAY/PAUSE/RESYNC without teaching the generic session store about it. */
+	onEvent?: (event: LiveEvent) => void
 ): LiveChannelHandle {
 	async function refetchAndReconcile() {
 		const { data } = await supabase
@@ -68,6 +70,7 @@ export function subscribeLiveSession(
 		.channel(`live:${bandId}`, { config: { presence: { key: currentUserId } } })
 		.on('broadcast', { event: BROADCAST_EVENT }, ({ payload }) => {
 			liveSession.applyEvent(payload as LiveEvent);
+			onEvent?.(payload as LiveEvent);
 		})
 		.on('presence', { event: 'sync' }, () => {
 			presentUserIds.set(Object.keys(channel.presenceState()));

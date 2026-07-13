@@ -4,7 +4,9 @@
 	import { currentBand } from '$lib/stores/currentBand';
 	import { liveSession } from '$lib/stores/liveSession';
 	import { presentUserIds } from '$lib/stores/presence';
+	import { autoScroll } from '$lib/stores/autoScroll';
 	import { subscribeLiveSession, type LiveChannelHandle } from '$lib/realtime/liveChannel';
+	import type { LiveEvent } from '$lib/types/realtime';
 	import { fetchMemberEmails } from '$lib/utils/memberNames';
 	import SongViewer from '$lib/components/song/SongViewer.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -29,6 +31,7 @@
 		original_key: string | null;
 		preferred_key: string | null;
 		capo: number;
+		bpm: number | null;
 	};
 
 	let handle: LiveChannelHandle | null = null;
@@ -64,11 +67,28 @@
 		(async () => {
 			memberEmails = await fetchMemberEmails(data.supabase, band.id);
 			if (data.user) {
-				handle = subscribeLiveSession(data.supabase, band.id, memberEmails, data.user.id);
+				handle = subscribeLiveSession(
+					data.supabase,
+					band.id,
+					memberEmails,
+					data.user.id,
+					handlePlaybackEvent
+				);
 			}
 			loadingSession = false;
 		})();
 	});
+
+	// 006 R6: PLAY/PAUSE/RESYNC drive the local auto-scroll clock. R7: a
+	// device in Individual mode ignores them entirely — it's reviewing its
+	// own song, not following the leader's playback state.
+	function handlePlaybackEvent(event: LiveEvent) {
+		if (followMode !== 'leader') return;
+
+		if (event.type === 'PLAY') autoScroll.play();
+		else if (event.type === 'PAUSE') autoScroll.pauseByLeader();
+		else if (event.type === 'RESYNC') autoScroll.resync(event.elapsed_ms);
+	}
 
 	const presentEmails = $derived($presentUserIds.map((id) => memberEmails.get(id) ?? id));
 
@@ -122,6 +142,39 @@
 
 		await data.supabase.from('live_sessions').delete().eq('id', session.sessionId);
 		liveSession.clear();
+	}
+
+	// --- 006: leader-driven playback (write-then-broadcast, same pattern as
+	// handleTakeLeadership/handleChangeSongAsLeader above) --------------------
+
+	async function handleLeaderPlay() {
+		const session = $liveSession;
+		if (!session) return;
+
+		const timestamp = Date.now();
+		const { error } = await data.supabase
+			.from('live_sessions')
+			.update({ status: 'playing' })
+			.eq('id', session.sessionId);
+		if (error) return;
+
+		autoScroll.play();
+		handle?.broadcast({ type: 'PLAY', leader_timestamp: timestamp });
+	}
+
+	async function handleLeaderPause() {
+		const session = $liveSession;
+		if (!session) return;
+
+		const timestamp = Date.now();
+		const { error } = await data.supabase
+			.from('live_sessions')
+			.update({ status: 'paused' })
+			.eq('id', session.sessionId);
+		if (error) return;
+
+		autoScroll.pauseByLeader();
+		handle?.broadcast({ type: 'PAUSE', leader_timestamp: timestamp });
 	}
 
 	// --- R8: Modo Convidado (link assinado, gerado pelo líder) --------------
@@ -199,7 +252,7 @@
 		Promise.all([
 			data.supabase
 				.from('songs')
-				.select('id, band_id, title, artist, original_key, preferred_key, capo')
+				.select('id, band_id, title, artist, original_key, preferred_key, capo, bpm')
 				.eq('id', songId)
 				.maybeSingle(),
 			data.supabase
@@ -283,6 +336,19 @@
 				liveSession.applyEvent(event);
 				handle?.broadcast(event);
 			});
+	}
+
+	// 006 R7: pedal in 'nav-song' mode moves through the setlist — only
+	// wired for the leader (only they drive the session's current song).
+	const canControlPlayback = $derived(isLeader || followMode === 'individual');
+
+	function handleNavSongByPedal(direction: 1 | -1) {
+		if (!isLeader) return;
+
+		const currentIndex = setlistItems.findIndex((item) => item.song_id === effectiveSongId);
+		const nextIndex = currentIndex + direction;
+		const nextItem = setlistItems[nextIndex];
+		if (nextItem) handleChangeSongAsLeader(nextItem.song_id);
 	}
 
 	// --- R5: fila de sugestões ----------------------------------------------
@@ -537,6 +603,12 @@
 				onTakeLeadership: handleTakeLeadership,
 				presentEmails,
 				onSuggest: openSuggestModal
+			}}
+			playback={{
+				canControl: canControlPlayback,
+				onPlay: isLeader ? handleLeaderPlay : () => autoScroll.play(),
+				onPause: isLeader ? handleLeaderPause : () => autoScroll.pauseByUser(),
+				onNavSong: isLeader ? handleNavSongByPedal : undefined
 			}}
 		/>
 	{/if}

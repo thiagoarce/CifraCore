@@ -1,13 +1,17 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { onMount } from 'svelte';
 	import { autoScroll } from '$lib/stores/autoScroll';
+	import { attachPedalListener } from '$lib/utils/pedalInput';
 
 	interface Props {
 		children: Snippet;
 		class?: string;
+		/** Leader-in-session only (R7): pedal in 'nav-song' mode changes the setlist's current song instead of stepping the scroll. Absent elsewhere, where a step-scroll fallback applies (R8). */
+		onNavSong?: (direction: 1 | -1) => void;
 	}
 
-	let { children, class: className = '' }: Props = $props();
+	let { children, class: className = '', onNavSong }: Props = $props();
 
 	const scrollState = autoScroll.state;
 	const scrollProgress = autoScroll.progress;
@@ -40,6 +44,25 @@
 		const max = containerEl.scrollHeight - containerEl.clientHeight;
 		containerEl.scrollTop = target * max;
 	});
+
+	// R7: pedal step = 60% of the visible height, smooth. A step (like a
+	// touch) always interrupts an active auto-scroll first — otherwise the
+	// pedal and the clock would fight over scrollTop.
+	function stepScroll(direction: 1 | -1) {
+		if ($scrollState === 'playing') {
+			autoScroll.pauseByUser(currentProgress());
+		}
+		containerEl?.scrollBy({ top: direction * containerEl.clientHeight * 0.6, behavior: 'smooth' });
+	}
+
+	onMount(() =>
+		attachPedalListener({
+			onStepForward: () => stepScroll(1),
+			onStepBackward: () => stepScroll(-1),
+			onNextSong: onNavSong ? () => onNavSong(1) : undefined,
+			onPreviousSong: onNavSong ? () => onNavSong(-1) : undefined
+		})
+	);
 </script>
 
 <!-- The touch/wheel/mousedown listeners only detect incidental interaction

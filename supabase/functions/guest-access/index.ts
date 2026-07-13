@@ -194,7 +194,7 @@ async function handleState(req: Request, env: Env): Promise<Response> {
         encodeURIComponent(session.current_song_id)
       }&band_id=eq.${
         encodeURIComponent(claims.band_id)
-      }&select=id,title,artist,original_key,preferred_key,capo`,
+      }&select=id,title,artist,original_key,preferred_key,capo,bpm`,
       { headers: serviceHeaders },
     ),
     fetch(

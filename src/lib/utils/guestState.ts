@@ -18,6 +18,7 @@ export interface GuestSong {
 	original_key: string | null;
 	preferred_key: string | null;
 	capo: number;
+	bpm: number | null;
 }
 
 export type GuestState =
